@@ -1,0 +1,31 @@
+version: 1
+
+rules:
+  - expected: AI
+    patterns:
+      - /\b[Aa]i\b/
+  - expected: API
+    patterns:
+      - /\b[Aa]pi\b/
+  - expected: Codex
+    patterns:
+      - /\bcodex\b/
+  - expected: GitHub
+    patterns:
+      - /\b[Gg]ithub\b/
+  - expected: JavaScript
+    patterns:
+      - /\b[Jj]avascript\b/
+  - expected: Markdown
+    patterns:
+      - /\b[Mm]arkdown\b/
+  - expected: Nix
+    patterns:
+      - /\bnix\b/
+  - expected: OpenAI
+    patterns:
+      - /\bOpenAi\b/
+      - /\bopenai\b/
+  - expected: TypeScript
+    patterns:
+      - /\b[Tt]ypescript\b/
