@@ -1,0 +1,4 @@
+interface:
+  display_name: "PRD作成"
+  short_description: "ユーザー課題とPRD境界を議論してDraftを生成"
+  default_prompt: "$create-prd を使って、ユーザー課題とPRD境界を議論し、prd.mdのDraftを作成してください。"

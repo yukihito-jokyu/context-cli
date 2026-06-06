@@ -1,0 +1,4 @@
+interface:
+  display_name: "ADR候補抽出"
+  short_description: "重要な技術判断候補を抽出してレビュー可能なDraftを生成"
+  default_prompt: "$extract-adr-candidates を使って、指定した対象からADR候補を抽出してください。"

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Architecture Change作成"
+  short_description: "Accepted済み要件とADRから設計変更案Draftを生成"
+  default_prompt: "$create-architecture-change を使って、指定したPRD IDのarchitecture-change.md Draftを作成してください。"

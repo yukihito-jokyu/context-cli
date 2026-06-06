@@ -1,0 +1,4 @@
+interface:
+  display_name: "Engineering Foundation作成"
+  short_description: "技術基盤を議論・監査し3つの規範文書をDraft化"
+  default_prompt: "$create-engineering-foundation を使って、入力したテーマに基づきEngineering Foundationを議論・監査し、必要なdocs/engineering/*.mdのDraftを作成してください。"

@@ -1,0 +1,4 @@
+interface:
+  display_name: "ドキュメントレビュー"
+  short_description: "成果物を観点別にレビューし修正とStatus確定を支援"
+  default_prompt: "$document-review を使って、指定した対象ファイルをレビューし、指摘の確認、修正、Status変更候補の提示まで行ってください。"

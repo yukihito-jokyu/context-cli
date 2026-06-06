@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tasks作成"
+  short_description: "Accepted済み要件と設計から実装計画Draftを生成"
+  default_prompt: "$create-tasks を使って、指定したPRD IDのtasks.md Draftを作成してください。"

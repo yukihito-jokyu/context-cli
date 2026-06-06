@@ -1,0 +1,4 @@
+interface:
+  display_name: "Backlog作成"
+  short_description: "PRDをユーザー価値単位のStoryへ分解してDraftを生成"
+  default_prompt: "$create-backlog を使って、指定したPRD IDのbacklog.md Draftを作成してください。"

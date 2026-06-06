@@ -1,0 +1,4 @@
+interface:
+  display_name: "コードレビュー"
+  short_description: "実装差分を要件・設計・技術規範に照らして独立レビュー"
+  default_prompt: "$code-review を使って、指定したPRD IDの実装差分をレビューしてください。"

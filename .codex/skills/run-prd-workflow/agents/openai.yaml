@@ -1,0 +1,4 @@
+interface:
+  display_name: "PRD標準フロー実行"
+  short_description: "新規PRDの標準開発フローを工程ごとに進行管理する"
+  default_prompt: "$run-prd-workflow を使って、解決したいユーザー課題から新規PRDの標準フローを開始または再開してください。"
