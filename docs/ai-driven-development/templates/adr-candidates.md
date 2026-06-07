@@ -9,7 +9,6 @@ Source: <PRD IDまたはengineering-foundation>。
 ### ADC-001: <Candidate Title>
 
 <!-- 判断時期の固定値を1行で定義するため。 -->
-<!-- textlint-disable preset-ja-technical-writing/sentence-length -->
 
 Status: Proposed
 Decision Needed: <判断が必要な理由>

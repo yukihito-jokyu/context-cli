@@ -1,7 +1,6 @@
 # Project Bootstrap
 
 <!-- Bootstrap状態の固定値を1行で定義するため。 -->
-<!-- textlint-disable preset-ja-technical-writing/sentence-length -->
 
 Status: <Draft | In Progress | Blocked | Completion Candidate | Completed>
 Status Reason: <現在の状態である理由>。

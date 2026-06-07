@@ -713,7 +713,6 @@ Definition of Readyを満たす通常Taskは、人間の個別承認なしで開
 実装中に正本と矛盾する方針や不足を見つけた場合、AIは実装を止める。対象は `docs/engineering/*.md`、`requirements.md`、ADR、`architecture-change.md`、`tasks.md` である。矛盾している成果物と該当箇所、影響範囲、正本の推奨候補を提示する。人間がどれを正として何を更新するかを決める。必要に応じて `grill-me` と `document-review` を再実行する。Acceptedに戻ってから実装を再開する。
 
 <!-- Status一覧は分割すると定義の対応関係が不明瞭になるため。 -->
-<!-- textlint-disable preset-ja-technical-writing/sentence-length -->
 
 Task Statusは `Pending / In Progress / Blocked / Completion Candidate / Completed / Cancelled / Superseded` を使う。開始時に `Pending` から `In Progress` へ変更する。実装、テスト、自己レビューが完了したら `Completion Candidate` とする。AIが完了根拠を提示し、人間が最終確定した後だけ `Completed` にする。`Completion Candidate` のTaskは依存Taskから完了済みとして扱わない。`Cancelled / Superseded` は上流成果物の更新後に設定する。必要な再レビューも完了していなければならない。すべての遷移でStatus Reasonを更新する。
 

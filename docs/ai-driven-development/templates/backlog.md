@@ -13,7 +13,6 @@ PRD ID: prd-XXX-<slug>
 ### ST-001: <Story Title>
 
 <!-- Storyメタデータの固定項目を連続して定義するため。 -->
-<!-- textlint-disable preset-ja-technical-writing/sentence-length -->
 
 Type: User Story
 Priority: P0
