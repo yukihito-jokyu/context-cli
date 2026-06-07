@@ -1,0 +1,77 @@
+version: "3"
+
+tasks:
+  dev:
+    desc: Run the CLI.
+    cmds:
+      - go run ./cmd/context
+
+  build:
+    desc: Build the CLI.
+    cmds:
+      - mkdir -p .toolchain/bin
+      - go build -o .toolchain/bin/context ./cmd/context
+
+  format:
+    desc: Format source code and documents.
+    cmds:
+      - gofmt -w cmd internal
+      - pnpm run format
+
+  format:check:
+    desc: Check source code and document formatting.
+    cmds:
+      - test -z "$(gofmt -l cmd internal)"
+      - pnpm run format:check
+
+  typecheck:
+    desc: Run Go static type analysis.
+    cmds:
+      - go vet ./...
+
+  test:
+    desc: Run all Go tests.
+    cmds:
+      - go test ./...
+
+  test:errors:
+    desc: Run Go tests with failure-focused output.
+    cmds:
+      - gotestsum --format testname -- ./...
+
+  lint:go:
+    desc: Run Go linters.
+    cmds:
+      - golangci-lint run
+
+  lint:docs:
+    desc: Check document formatting and prose.
+    cmds:
+      - pnpm run lint
+
+  lint:ci:
+    desc: Check GitHub Actions workflows.
+    cmds:
+      - actionlint
+
+  vuln:
+    desc: Check Go dependencies for known vulnerabilities.
+    cmds:
+      - govulncheck ./...
+
+  lint:
+    desc: Run all linters.
+    deps:
+      - typecheck
+      - lint:go
+      - lint:docs
+      - lint:ci
+
+  ci:
+    desc: Run the local CI quality gate.
+    cmds:
+      - task: format:check
+      - task: lint
+      - task: vuln
+      - task: test
+      - task: build
