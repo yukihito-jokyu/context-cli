@@ -1,6 +1,58 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
+  "extends": ["config:recommended", ":dependencyDashboard"],
+  "timezone": "Asia/Tokyo",
+  "schedule": ["before 6am on Monday"],
+  "prConcurrentLimit": 5,
+  "labels": ["dependencies"],
+  "automerge": false,
+  "minimumReleaseAge": "3 days",
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["dependencies"],
+    "minimumReleaseAge": null,
+    "schedule": []
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on Monday"]
+  },
+  "packageRules": [
+    {
+      "description": "Group non-major npm updates",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": [
+        "digest",
+        "lockFileMaintenance",
+        "minor",
+        "patch",
+        "pin"
+      ],
+      "groupName": "npm dependencies"
+    },
+    {
+      "description": "Group non-major Nix updates",
+      "matchManagers": ["nix"],
+      "matchUpdateTypes": [
+        "digest",
+        "lockFileMaintenance",
+        "minor",
+        "patch",
+        "pin"
+      ],
+      "groupName": "Nix dependencies"
+    },
+    {
+      "description": "Group non-major Go module updates",
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": [
+        "digest",
+        "lockFileMaintenance",
+        "minor",
+        "patch",
+        "pin"
+      ],
+      "groupName": "Go dependencies"
+    }
   ]
 }

@@ -1,0 +1,10 @@
+glob_matcher: doublestar
+
+pre-commit:
+  parallel: true
+  commands:
+    format:
+      run: pnpm exec prettier --check --ignore-unknown {staged_files}
+    lint-docs:
+      glob: "**/*.md"
+      run: pnpm exec textlint {staged_files}

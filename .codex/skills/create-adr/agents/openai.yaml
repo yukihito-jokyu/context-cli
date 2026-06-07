@@ -1,0 +1,4 @@
+interface:
+  display_name: "ADR作成"
+  short_description: "Accepted済みADR候補から正式なADR Draftを生成"
+  default_prompt: "$create-adr を使って、指定したSourceとCandidate IDからADR Draftを作成してください。"

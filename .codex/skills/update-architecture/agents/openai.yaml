@@ -1,0 +1,4 @@
+interface:
+  display_name: "アーキテクチャ更新"
+  short_description: "実装結果を現在状態のアーキテクチャ文書へ安全かつ正確に反映"
+  default_prompt: "$update-architecture を使って、指定したPRD IDの実装結果をdocs/architectureへ反映してください。"

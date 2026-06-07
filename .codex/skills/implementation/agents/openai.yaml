@@ -1,0 +1,4 @@
+interface:
+  display_name: "実装"
+  short_description: "Accepted済みTaskをテストと検証を伴って実装"
+  default_prompt: "$implementation を使って、指定したPRD IDの実装可能なTaskを実装してください。"

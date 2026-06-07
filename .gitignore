@@ -1,0 +1,12 @@
+# Mac
+.DS_Store
+
+# env
+.env
+
+# Local toolchain caches
+.direnv/
+.toolchain/
+
+# Node.js
+node_modules/

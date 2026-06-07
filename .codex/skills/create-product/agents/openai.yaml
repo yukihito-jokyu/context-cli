@@ -1,0 +1,4 @@
+interface:
+  display_name: "Product作成"
+  short_description: "プロダクト文脈を議論しproduct.mdのDraftを生成"
+  default_prompt: "$create-product を使って、入力したプロダクトテーマを議論し、docs/product.mdのDraftを作成してください。"

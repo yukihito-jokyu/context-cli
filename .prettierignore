@@ -1,0 +1,8 @@
+.direnv/
+.toolchain/
+.codex/**/*.json
+.codex/**/*.yaml
+.codex/**/*.yml
+node_modules/
+flake.lock
+pnpm-lock.yaml

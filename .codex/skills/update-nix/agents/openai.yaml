@@ -1,0 +1,4 @@
+interface:
+  display_name: "Nix環境を更新"
+  short_description: "Flake開発環境の依存追加・更新・検証を安全に実行"
+  default_prompt: "Use $update-nix to add a requested tool to the Nix development environment and validate the change."

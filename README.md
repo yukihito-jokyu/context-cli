@@ -1,2 +1,3 @@
 # context-cli
-contextリポジトリ用のcliツール
+
+contextリポジトリ用のCLIツール。

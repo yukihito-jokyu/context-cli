@@ -1,0 +1,4 @@
+interface:
+  display_name: "Requirements作成"
+  short_description: "Accepted済みPRDとBacklogから要件Draftを生成"
+  default_prompt: "$create-requirements を使って、指定したPRD IDのrequirements.md Draftを作成してください。"
