@@ -14,8 +14,6 @@ Status: Proposed
 Decision Needed: <判断が必要な理由>
 Decision Timing: <Now / Before Implementation / Deferred>。
 
-<!-- textlint-enable preset-ja-technical-writing/sentence-length -->
-
 Related PRDs:
 
 - <PRD IDまたはNot applicable>

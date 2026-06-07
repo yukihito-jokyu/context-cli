@@ -30,8 +30,6 @@ Dependencies: ST-001
 Supports: ST-001
 Reason: <User Storyから分離して管理する必要がある理由>。
 
-<!-- textlint-enable preset-ja-technical-writing/sentence-length -->
-
 <どのユーザー価値を成立させるための内部対応か>。
 
 ## Epics

@@ -5,8 +5,6 @@
 Status: <Draft | In Progress | Blocked | Completion Candidate | Completed>
 Status Reason: <現在の状態である理由>。
 
-<!-- textlint-enable preset-ja-technical-writing/sentence-length -->
-
 ## Source
 
 - Technology: ./technology.md

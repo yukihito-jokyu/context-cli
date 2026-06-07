@@ -716,8 +716,6 @@ Definition of Readyを満たす通常Taskは、人間の個別承認なしで開
 
 Task Statusは `Pending / In Progress / Blocked / Completion Candidate / Completed / Cancelled / Superseded` を使う。開始時に `Pending` から `In Progress` へ変更する。実装、テスト、自己レビューが完了したら `Completion Candidate` とする。AIが完了根拠を提示し、人間が最終確定した後だけ `Completed` にする。`Completion Candidate` のTaskは依存Taskから完了済みとして扱わない。`Cancelled / Superseded` は上流成果物の更新後に設定する。必要な再レビューも完了していなければならない。すべての遷移でStatus Reasonを更新する。
 
-<!-- textlint-enable preset-ja-technical-writing/sentence-length -->
-
 `implementationスキル` が実装中に更新してよい `tasks.md` の範囲は次に限定する。
 
 - Task Status
