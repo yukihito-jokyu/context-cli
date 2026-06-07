@@ -1,9 +1,7 @@
 # Structure
 
-Status: Review
+Status: Accepted
 Status Reason: 重レビューでI/Oポートの所有者、依存方向、配布先識別を修正した。レイヤー構造とYAML永続化のADR確定後に再開する。
-
-<!-- textlint-enable preset-ja-technical-writing/sentence-length -->
 
 ## Structure Principles
 
