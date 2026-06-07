@@ -30,11 +30,14 @@
         # TODO: Add packages.default after the CLI entry point and build layout are decided.
         devShells.default = pkgs.mkShellNoCC {
           packages = with pkgs; [
+            actionlint
             delve
             git
             go
             go-task
             golangci-lint
+            gotestsum
+            govulncheck
             gopls
             lefthook
             nixfmt
