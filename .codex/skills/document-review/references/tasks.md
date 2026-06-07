@@ -36,22 +36,16 @@
 
 - Release CheckにScope、Checked At、標準チェック項目ごとの判定と根拠、Overall Result、Remaining Risks、Follow-up、Human Decisionがあるか
 
-<!-- textlint-enable preset-ja-technical-writing/sentence-length -->
-
 - 各TaskのCode ReviewとPRD全体のCode Review Summaryに、対象差分、指摘、修正、再検証、残存リスク、人間判断の記録先があるか
   <!-- 固定の定義または対応関係を1行で維持するため。 -->
 
 - Architecture UpdateにStatus、Scope、Evidence、Files Updated、Inconsistencies、Unreflected Items、Human Decisionがあるか
-
-<!-- textlint-enable preset-ja-technical-writing/sentence-length -->
 
 - Open QuestionsがBlockingとDeferredに分類され、Deferredに判断条件、判断工程、影響Taskがあるか
 - 既存Task IDとTest Task IDが維持され、CancelledまたはSupersededの理由と置換先が記録されているか
   <!-- 固定の定義または対応関係を1行で維持するため。 -->
 
 - Task Statusが `Pending / In Progress / Blocked / Completion Candidate / Completed / Cancelled / Superseded` のいずれかで、Status Reasonと整合しているか
-
-<!-- textlint-enable preset-ja-technical-writing/sentence-length -->
 
 - `Completion Candidate` が依存Taskの完了条件として扱われていないか
 - 実装後の再レビューでは、Completedが人間の確定後にだけ設定され、Blockedに原因と解除条件があるか

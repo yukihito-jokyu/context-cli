@@ -23,8 +23,6 @@ Accepted済み候補の判断を補完・再解釈せず、正式なADR Draftと
 
 PRD IDを受け取った場合は `docs/prds/prd-XXX-*/adr-candidates.md`、`engineering-foundation` の場合は `docs/engineering/adr-candidates.md` を対象とする。
 
-<!-- textlint-enable preset-ja-technical-writing/sentence-length -->
-
 次をすべて満たす場合だけ続行する。
 
 - 対象ファイルが一意に存在する。

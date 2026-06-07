@@ -8,8 +8,6 @@
 
 - Default importance: initial creation or policy change `重`; typo, reference, or explanatory correction `中`
 
-<!-- textlint-enable preset-ja-technical-writing/sentence-length -->
-
 - Status required: yes
 
 ## Inputs

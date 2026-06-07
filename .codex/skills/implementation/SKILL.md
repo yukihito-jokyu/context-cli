@@ -34,8 +34,6 @@ Task IDが指定された場合は、そのTaskだけを対象とする。未指
 
 `lightweight / hotfix` では、指定された変更記録から `Problem / Expected Outcome / Constraints / Risk Assessment` を読み、1つの検証可能な変更単位を対象にする。`hotfix` では `Rollback` も必須とする。不足項目がある場合は実装せず、記録の補完を求める。以下の「Task」は、軽量・緊急モードではこの変更単位を指す。
 
-<!-- textlint-enable preset-ja-technical-writing/sentence-length -->
-
 軽量・緊急モードではStory、AC、TR、NFRを必須にせず、それぞれユーザー影響、Expected Outcome、Constraints、リスクに応じた品質・運用条件へ読み替える。
 
 ## 2. Definition of Readyを検査する
@@ -78,8 +76,6 @@ Task IDが指定された場合は、そのTaskだけを対象とする。未指
 <!-- 固定の定義または対応関係を1行で維持するため。 -->
 
 `lightweight / hotfix` では、`docs/product.md`、`docs/engineering/*.md`、指定された変更記録、関連ADR、存在する場合は `docs/architecture/*.md`、関連コード・設定・テスト、Git差分の順に読む。
-
-<!-- textlint-enable preset-ja-technical-writing/sentence-length -->
 
 セッション再開時も正本と現在の差分を読み直し、会話履歴や一時要約だけを根拠に再開しない。
 
@@ -128,8 +124,6 @@ Pending / In Progress -> Cancelled | Superseded
 <!-- 固定の定義または対応関係を1行で維持するため。 -->
 
 `lightweight / hotfix` では、変更記録に `In Progress / Blocked / Completion Candidate / Completed` の状態、理由、実変更ファイル、テスト結果、未実行理由、Follow-upを記録する。IssueまたはPR説明を直接更新できない場合は、完了報告で追記内容を提示し、人間が記録するまで完了扱いにしない。
-
-<!-- textlint-enable preset-ja-technical-writing/sentence-length -->
 
 ## 7. Test Firstで実装する
 

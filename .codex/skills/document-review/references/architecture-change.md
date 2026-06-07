@@ -21,12 +21,9 @@
 
 - Code/config before implementation: inspect current structure and feasibility; lack of implementation is not a defect
 
-<!-- textlint-enable preset-ja-technical-writing/sentence-length -->
 <!-- 固定の定義または対応関係を1行で維持するため。 -->
 
 - Code/config after implementation: inspect the implementation diff, tests, tasks.md, and actual resulting behavior
-
-<!-- textlint-enable preset-ja-technical-writing/sentence-length -->
 
 ## Review Points
 
