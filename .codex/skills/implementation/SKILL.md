@@ -31,7 +31,6 @@ Task IDが指定された場合は、そのTaskだけを対象とする。未指
 - 指定Taskが開始不能な場合は、理由と先に必要な対応を報告して停止する。
 
 <!-- 固定の定義または対応関係を1行で維持するため。 -->
-<!-- textlint-disable preset-ja-technical-writing/sentence-length -->
 
 `lightweight / hotfix` では、指定された変更記録から `Problem / Expected Outcome / Constraints / Risk Assessment` を読み、1つの検証可能な変更単位を対象にする。`hotfix` では `Rollback` も必須とする。不足項目がある場合は実装せず、記録の補完を求める。以下の「Task」は、軽量・緊急モードではこの変更単位を指す。
 
@@ -77,7 +76,6 @@ Task IDが指定された場合は、そのTaskだけを対象とする。未指
 初回PRDで `docs/architecture/*.md` が存在しない場合は、Requirements、ADR、`architecture-change.md` を設計根拠とする。
 
 <!-- 固定の定義または対応関係を1行で維持するため。 -->
-<!-- textlint-disable preset-ja-technical-writing/sentence-length -->
 
 `lightweight / hotfix` では、`docs/product.md`、`docs/engineering/*.md`、指定された変更記録、関連ADR、存在する場合は `docs/architecture/*.md`、関連コード・設定・テスト、Git差分の順に読む。
 
@@ -128,7 +126,6 @@ Pending / In Progress -> Cancelled | Superseded
 - すべての遷移で `Status Reason` を更新する。
 
 <!-- 固定の定義または対応関係を1行で維持するため。 -->
-<!-- textlint-disable preset-ja-technical-writing/sentence-length -->
 
 `lightweight / hotfix` では、変更記録に `In Progress / Blocked / Completion Candidate / Completed` の状態、理由、実変更ファイル、テスト結果、未実行理由、Follow-upを記録する。IssueまたはPR説明を直接更新できない場合は、完了報告で追記内容を提示し、人間が記録するまで完了扱いにしない。
 

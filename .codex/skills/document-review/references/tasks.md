@@ -33,7 +33,6 @@
 - 適用フローとリスク判定の根拠が妥当か
 - 並行作業の競合、品質ゲート、release-check、リリース後検証の記録先があるか
   <!-- 固定の定義または対応関係を1行で維持するため。 -->
-  <!-- textlint-disable preset-ja-technical-writing/sentence-length -->
 
 - Release CheckにScope、Checked At、標準チェック項目ごとの判定と根拠、Overall Result、Remaining Risks、Follow-up、Human Decisionがあるか
 
@@ -41,7 +40,6 @@
 
 - 各TaskのCode ReviewとPRD全体のCode Review Summaryに、対象差分、指摘、修正、再検証、残存リスク、人間判断の記録先があるか
   <!-- 固定の定義または対応関係を1行で維持するため。 -->
-  <!-- textlint-disable preset-ja-technical-writing/sentence-length -->
 
 - Architecture UpdateにStatus、Scope、Evidence、Files Updated、Inconsistencies、Unreflected Items、Human Decisionがあるか
 
@@ -50,7 +48,6 @@
 - Open QuestionsがBlockingとDeferredに分類され、Deferredに判断条件、判断工程、影響Taskがあるか
 - 既存Task IDとTest Task IDが維持され、CancelledまたはSupersededの理由と置換先が記録されているか
   <!-- 固定の定義または対応関係を1行で維持するため。 -->
-  <!-- textlint-disable preset-ja-technical-writing/sentence-length -->
 
 - Task Statusが `Pending / In Progress / Blocked / Completion Candidate / Completed / Cancelled / Superseded` のいずれかで、Status Reasonと整合しているか
 

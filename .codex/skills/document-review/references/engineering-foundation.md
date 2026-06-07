@@ -5,7 +5,6 @@
 - Paths: `docs/engineering/technology.md`, `structure.md`, `development-rules.md`
 - Templates: matching files under `docs/ai-driven-development/templates/engineering/`
   <!-- 固定の定義または対応関係を1行で維持するため。 -->
-  <!-- textlint-disable preset-ja-technical-writing/sentence-length -->
 
 - Default importance: initial creation or policy change `重`; typo, reference, or explanatory correction `中`
 
