@@ -1,0 +1,4 @@
+interface:
+  display_name: "リリースチェック"
+  short_description: "実装差分と全検証結果を照合して最終リリース可否を判定します"
+  default_prompt: "$check-release を使って対象PRDのリリース可否を確認してください。"

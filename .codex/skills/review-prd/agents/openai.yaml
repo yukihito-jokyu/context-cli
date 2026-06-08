@@ -1,0 +1,4 @@
+interface:
+  display_name: "PRDレビュー"
+  short_description: "統合PRDのScopeと要件を独立レビューして確定します"
+  default_prompt: "$review-prd を使って対象PRDをレビューしてください。"

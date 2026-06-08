@@ -1,0 +1,4 @@
+interface:
+  display_name: "計画実装"
+  short_description: "承認済み計画を人間ゲートなしで連続実装して検証します"
+  default_prompt: "$implement-plan を使ってAccepted実装計画を完了まで実装してください。"

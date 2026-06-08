@@ -1,0 +1,4 @@
+interface:
+  display_name: "Architecture更新"
+  short_description: "実装済みシステムの現在状態だけをArchitecture文書へ反映します"
+  default_prompt: "$update-current-architecture を使って実装済みArchitectureを更新してください。"
