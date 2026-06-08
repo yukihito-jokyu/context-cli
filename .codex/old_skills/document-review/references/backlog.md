@@ -26,4 +26,6 @@
 ## Completion
 
 - 各Storyをrequirements.mdへ一意に引き継げる
+- BacklogをAccepted化するとき、レビュー対象範囲の有効なStoryもAccepted化する
+- `Cancelled`、`Superseded` のStory Statusは維持する
 - Allowed transition: `Review -> Accepted`
