@@ -39,6 +39,12 @@ tasks:
     cmds:
       - gotestsum --format testname -- ./...
 
+  cover:
+    desc: Run tests and generate coverage HTML report.
+    cmds:
+      - go test -coverprofile=coverage.out ./...
+      - go tool cover -html=coverage.out
+
   lint:go:
     desc: Run Go linters.
     cmds:
