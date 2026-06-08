@@ -13,6 +13,18 @@ func (f commandFunc) Run(ctx context.Context, args []string) int {
 	return f(ctx, args)
 }
 
+func equalSlice(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func TestHandlerRun(t *testing.T) {
 	t.Parallel()
 
@@ -59,16 +71,11 @@ func TestHandlerRun(t *testing.T) {
 			if gotCode != tt.wantCode {
 				t.Fatalf("Run() exit code = %d, want %d", gotCode, tt.wantCode)
 			}
-			if len(tt.wantArgs) != len(gotArgs) {
+			if !equalSlice(gotArgs, tt.wantArgs) {
 				t.Fatalf("command args = %v, want %v", gotArgs, tt.wantArgs)
 			}
-			for i := range tt.wantArgs {
-				if gotArgs[i] != tt.wantArgs[i] {
-					t.Errorf("command args[%d] = %q, want %q", i, gotArgs[i], tt.wantArgs[i])
-				}
-			}
-			if !strings.Contains(stderr.String(), tt.wantStderr) {
-				t.Errorf("stderr = %q, want substring %q", stderr.String(), tt.wantStderr)
+			if got := stderr.String(); !strings.Contains(got, tt.wantStderr) {
+				t.Errorf("stderr = %q, want substring %q", got, tt.wantStderr)
 			}
 		})
 	}
