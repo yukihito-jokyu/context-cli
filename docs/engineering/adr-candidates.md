@@ -1,7 +1,7 @@
 # ADR Candidates
 
 Status: Accepted
-Status Reason: 最重レビューで判断境界と選択肢を修正し、レイヤー構造とYAML永続化の両候補をADR化する判断として確定した。
+Status Reason: 人間がADC-003の推奨案と、既存のレイヤー判断に対する限定例外を承認した。
 Source: engineering-foundation。
 
 ## Candidates
@@ -128,6 +128,73 @@ Human Decision Reason:
 Resulting ADR:
 
 - `docs/decisions/adr-002-yaml-persistence-and-storage-boundaries.md`
+
+### ADC-003: config.yamlのスキーマ解釈の所有境界
+
+<!-- 判断時期の固定値を1行で定義するため。 -->
+
+Status: Accepted
+Decision Needed: `config.yaml`の未知フィールド拒否、スキーマバージョン検証、値検証をドメイン契約として一箇所で強制しつつ、その他のYAML処理とファイルI/Oをinfrastructureへ隔離する所有境界を実装前に確定する必要がある。
+Decision Timing: Before Implementation。
+
+Related PRDs:
+
+- `docs/prds/prd-001-safe-context-repository-setup/prd.md`
+
+Related Stories:
+
+- `prd-001-safe-context-repository-setup/ST-001`
+- `prd-001-safe-context-repository-setup/ST-003`
+- `prd-001-safe-context-repository-setup/ST-005`
+
+Related Requirements:
+
+- `prd-001-safe-context-repository-setup/AC-016`
+- `prd-001-safe-context-repository-setup/AC-018`
+- `prd-001-safe-context-repository-setup/TR-013`
+- `prd-001-safe-context-repository-setup/TR-014`
+- `prd-001-safe-context-repository-setup/TR-015`
+
+Related Architecture Changes:
+
+- `docs/prds/prd-001-safe-context-repository-setup/architecture-change.md`
+
+Related ADRs:
+
+- `docs/decisions/adr-001-layer-architecture-and-dependency-direction.md`: domainを外部技術から分離する既存判断に対する限定例外。
+- `docs/decisions/adr-002-yaml-persistence-and-storage-boundaries.md`: `config.yaml`の厳格デコード要件を適用する。
+
+Options:
+
+- `config.yaml`の厳格デコードと値検証をdomainへ配置し、YAMLエンコード、ファイルI/O、`map.yaml`を含むその他のYAML処理をinfrastructureへ配置する。
+- `config.yaml`を含むすべてのYAMLデコードをinfrastructureへ配置し、domainはデコード済みの設定値だけを検証する。
+- YAMLスキーマ処理専用のcodecパッケージを設け、domainとinfrastructureのどちらにも属さない境界として扱う。
+
+Evaluation Criteria:
+
+- `config.yaml`のスキーマバージョン、未知フィールド、値の妥当性を一貫して強制できること。
+- ファイルI/O、XDGパス、ロック、原子的置換をdomainから分離できること。
+- `map.yaml`や将来追加されるYAML処理へ例外が拡大しないこと。
+- 責務境界と依存方向をコードレビューで明確に判定できること。
+- 初期版に不要なパッケージや変換処理を増やさないこと。
+
+Recommendation:
+
+- `config.yaml`の厳格デコードと値検証だけをdomainへ配置する。domainはファイルを直接読み書きせず、受け取ったバイト列をドメイン設定へ変換する。YAMLエンコード、ファイルI/O、`map.yaml`を含むその他のYAML処理はinfrastructureへ配置する。
+
+ADR Recommendation: Create ADR
+ADR Recommendation Reason:
+
+- Accepted済みADR-001にある外部技術の分離原則へ限定例外を追加し、複数の後続PRDが参照する設定境界へ影響する。
+- 例外の拡大を防ぐため、適用対象と禁止範囲を実装前に固定する必要がある。
+
+Human Decision Reason:
+
+- `config.yaml`のYAML処理はdomainへ配置し、その他のYAML処理はinfrastructureへ配置する方針を人間が確定した。
+
+Resulting ADR:
+
+- `docs/decisions/adr-006-config-schema-ownership-boundary.md`
 
 ## Assumptions
 

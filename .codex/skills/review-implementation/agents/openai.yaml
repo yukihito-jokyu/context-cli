@@ -1,0 +1,4 @@
+interface:
+  display_name: "実装レビュー"
+  short_description: "PRD全体の実装差分を独立レビューして必要な修正を行います"
+  default_prompt: "$review-implementation を使って対象PRDの実装差分をレビューしてください。"

@@ -1,0 +1,4 @@
+interface:
+  display_name: "実装計画作成"
+  short_description: "設計、実装単位、テスト、品質ゲートを一つの計画へ統合します"
+  default_prompt: "$create-implementation-plan を使ってAccepted PRDの実装計画を作成してください。"

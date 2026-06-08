@@ -1,0 +1,4 @@
+interface:
+  display_name: "実装計画レビュー"
+  short_description: "要件、設計、テスト計画、運用リスクを一度に統合レビューします"
+  default_prompt: "$review-implementation-plan を使って実装計画をレビューしてください。"

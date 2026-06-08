@@ -10,3 +10,10 @@
 
 # Node.js
 node_modules/
+
+# Test coverage
+coverage.out
+coverage.html
+
+# example
+example

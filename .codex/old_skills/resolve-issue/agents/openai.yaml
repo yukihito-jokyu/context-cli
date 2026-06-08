@@ -1,0 +1,4 @@
+interface:
+  display_name: "Issue解決"
+  short_description: "Issueを議論し成果物別の修正提案と反映まで実行"
+  default_prompt: "$resolve-issue を使って、指定したGitHub Issue番号と修正対象ファイルを入力に、論点の確定、ファイル別修正提案、承認後の修正と検証まで行ってください。"

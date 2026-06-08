@@ -1,0 +1,4 @@
+interface:
+  display_name: "PRD定義"
+  short_description: "対話からStoryとAcceptance Criteriaを統合したPRDを作成します"
+  default_prompt: "$define-prd を使ってユーザー課題を議論し、統合PRDを作成してください。"
