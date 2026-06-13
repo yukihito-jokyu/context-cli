@@ -1,92 +1,90 @@
-# ADR-XXX: <Short Title>
+# ADR-XXX: <タイトル>
 
-Status: Draft
-Status Reason: <この状態である理由>
-Decision ID: ADR-XXX
-Date: YYYY-MM-DD。
+決定ID: ADR-XXX
+日付: YYYY-MM-DD。
 
-## Context
+## 背景 (Context)
 
 <判断が必要になった背景>。
 
-## Decision
+## 決定事項 (Decision)
 
 <採用する判断>。
 
-## Options
+## 選択肢 (Options)
 
-### Option A: <Option Name>
+### 選択肢 A: <選択肢名>
 
-Pros:
+長所:。
 
 - <利点>
 
-Cons:
+短所:。
 
 - <欠点>
 
-Rejection Reason:
+却下理由:。
 
 - <不採用の場合の理由。採用案の場合はNot applicable>
 
-### Option B: <Option Name>
+### 選択肢 B: <選択肢名>
 
-Pros:
+長所:。
 
 - <利点>
 
-Cons:
+短所:。
 
 - <欠点>
 
-Rejection Reason:
+却下理由:。
 
 - <不採用理由>
 
-## Rationale
+## 決定理由 (Rationale)
 
 <採用理由>。
 
-## Consequences
+## 影響・帰結 (Consequences)
 
 - <影響>
 
-## Risks
+## リスク
 
 - <リスク>
 
-## Mitigations
+## 緩和策
 
 - <緩和策>
 
-## Related PRDs
+## 関連仕様書
 
-- <docs/prds/prd-XXX-\*/prd.md>
+- <docs/specs/spec-XXX-\*/spec.md>
 
-## Related Stories
+## 関連ストーリー
 
-- <prd-XXX/ST-001>
+- <spec-XXX/ST-001>
 
-## Related Requirements
+## 関連要件
 
-- <prd-XXX/TR-001>
+- <spec-XXX/TR-001>
 
-## Related Architecture Changes
+## 関連アーキテクチャ変更
 
-- <docs/prds/prd-XXX-\*/architecture-change.md>
+- <docs/specs/spec-XXX-\*/architecture-change.md>
 
-## Supersedes
+## 置き換えるADR
 
 - <置き換えるADR。なければNone>
 
-## Superseded By
+## 置き換えられるADR
 
 - <置き換え元。なければNone>
 
-## Assumptions
+## 前提条件
 
 - <前提>
 
-## Open Questions
+## 未解決事項
 
 - <未確定事項>

@@ -1,74 +1,74 @@
-# Development Rules
+# 開発規則
 
 Status: Draft
 Status Reason: <この状態である理由>。
 
-## Engineering Principles
+## 開発の基本原則
 
 - <開発原則>
 
-## Implementation Rules
+## 実装規則
 
 - <実装規則>
 
-## Error Handling
+## エラーハンドリング
 
 - <エラー処理規則>
 
-## Security / Privacy
+## セキュリティ・プライバシー
 
 - <セキュリティとプライバシー規則>
 
-## Testing Rules
+## テスト規則
 
 - <テスト規則と実行コマンドまたは参照先>
 
-## Code Review Rules
+## コードレビュー規則
 
 - <コードレビュー規則>
 
-## Git / Branch / Commit Rules
+## Git・ブランチ・コミット規則
 
 - <Git、ブランチ、コミット規則>
 
-## Dependency Management
+## 依存関係管理
 
 - <依存関係の追加と更新規則>
 
-## Configuration / Secrets
+## 設定・秘密情報
 
 - <設定と秘密情報の扱い>
 
-## Logging / Observability
+## ログ・可観測性
 
 - <ログと可観測性の規則>
 
-## Documentation Rules
+## ドキュメント規則
 
 - <ドキュメント更新規則>
 
-## Definition of Done
+## 完了の定義
 
 - <開発完了条件>
 
-## Exceptions
+## 例外ルール
 
 - <例外の承認者、理由、記録先。初期値はNot applicable>
 
-## Related Decisions
+## 関連する決定事項
 
 - <ADR参照>
 
-## Assumptions
+## 前提条件
 
 - <人間が暫定的に許容した前提>
 
-## Open Questions
+## 未解決事項
 
-### Blocking
+### 開発ブロック事項
 
 - <最初のPRD開始前に解決する事項>
 
-### Deferred
+### 保留事項
 
 - <判断条件と決定予定フェーズを明記した保留事項>

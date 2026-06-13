@@ -1,45 +1,41 @@
-# Backlog
+# バックログ (Backlog)
 
-Status: Draft
-Status Reason: <この状態である理由>
-PRD ID: prd-XXX-<slug>
+仕様書ID: spec-XXX-<slug>
 
-## Source
+## 情報源
 
-- PRD: ./prd.md
+- 仕様書: ./spec.md
 
-## Stories
+## ストーリー
 
-### ST-001: <Story Title>
+### ST-001: <ストーリータイトル>
 
-<!-- Storyメタデータの固定項目を連続して定義するため。 -->
-
-Type: User Story
-Priority: P0
-Status: Draft
-Dependencies: None
+種別: User Story
+優先度: P0
+ステータス: Draft
+依存関係: None。
 
 <ユーザーとして、何をしたいか。なぜなら何の価値があるから。>。
 
-### ST-002: <Story Title>
+### ST-002: <ストーリータイトル>
 
-Type: Technical Story
-Priority: P1
-Status: Draft
-Dependencies: ST-001
-Supports: ST-001
-Reason: <User Storyから分離して管理する必要がある理由>。
+種別: Technical Story
+優先度: P1
+ステータス: Draft
+依存関係: ST-001
+対象ストーリー: ST-001
+理由: <User Storyから分離して管理する必要がある理由>。
 
 <どのユーザー価値を成立させるための内部対応か>。
 
-## Epics
+## エピック
 
 Not applicable.
 
-## Assumptions
+## 前提条件
 
-- <Story分割時の前提>
+- <ストーリー分割時の前提>
 
-## Open Questions
+## 未解決事項
 
 - <人間判断が必要な未確定事項>

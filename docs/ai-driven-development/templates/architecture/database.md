@@ -1,43 +1,43 @@
-# Database Architecture
+# データベースアーキテクチャ
 
 Status: Draft
 Status Reason: <この状態である理由>
 Source: <参照元>。
 
 - <コード調査、PRD、architecture-change、ADRなど>
-  Related PRDs:
+  関連仕様書:
 - <PRD参照>
-  Related ADRs:
+  関連ADR:
 - <ADR参照>
 
-## Database Summary
+## データベース概要
 
 <DB概要。該当しない場合はNot applicable>。
 
-## Schema Overview
+## スキーマ概要
 
 <スキーマ概要>。
 
-## Tables / Collections
+## テーブル・コレクション
 
 - <テーブルまたはコレクション>
 
-## Relationships
+## リレーション関係
 
 - <関係>
 
-## Constraints
+## 制約事項
 
 - <制約>
 
-## Migration Policy
+## 移行方針
 
 <Migration方針>。
 
-## Data Integrity Rules
+## データ整合性規則
 
 - <データ整合性ルール>
 
-## Not Applicable Reason
+## 非該当の理由
 
 <該当しない場合の理由。該当する場合はNot applicable>。

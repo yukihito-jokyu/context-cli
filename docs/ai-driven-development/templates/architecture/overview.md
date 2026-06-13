@@ -1,39 +1,39 @@
-# Architecture Overview
+# アーキテクチャ概要
 
 Status: Draft
 Status Reason: <この状態である理由>
 Source: <参照元>。
 
 - <コード調査、PRD、architecture-change、ADRなど>
-  Related PRDs:
+  関連仕様書:
 - <PRD参照>
-  Related ADRs:
+  関連ADR:
 - <ADR参照>
 
-## System Summary
+## システム概要
 
 <システム概要>。
 
-## Runtime Context
+## 実行コンテキスト
 
 <実行環境>。
 
-## Major Components
+## 主要コンポーネント
 
 - <主要コンポーネント>
 
-## Data Flow
+## データフロー
 
 <主要なデータフロー>。
 
-## External Dependencies
+## 外部依存
 
 - <外部依存>
 
-## Key Constraints
+## 重要制約事項
 
 - <重要制約>
 
-## Not Applicable Reason
+## 非該当の理由
 
 <該当しない場合の理由。該当する場合はNot applicable>。

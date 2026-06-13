@@ -1,37 +1,35 @@
-# Requirements
+# 要件定義 (Requirements)
 
-Status: Draft
-Status Reason: <この状態である理由>
-PRD ID: prd-XXX-<slug>
+仕様書ID: spec-XXX-<slug>
 
-## Source
+## 情報源
 
-- PRD: ./prd.md
-- Backlog: ./backlog.md
+- 仕様書: ./spec.md
+- バックログ: ./backlog.md
 
-## Story Requirements
+## ストーリー要件
 
-### ST-001: <Story Title>
+### ST-001: <ストーリータイトル>
 
-#### Acceptance Criteria
+#### 完成条件
 
 - AC-001: <ユーザー視点の完成条件>
 - AC-002: <ユーザー視点の完成条件>
 
-#### Technical Requirements
+#### 技術要件
 
 - TR-001: <設計が満たすべき制約・保証条件>
 - TR-002: <設計が満たすべき制約・保証条件>
 
-## Non-Functional Requirements
+## 非機能要件
 
 - NFR-001: <性能、セキュリティ、可用性、運用、監視などの共通要件>
-  Applies To: ST-001, ST-003
+  対象ストーリー: ST-001, ST-003
 
-## Assumptions
+## 前提条件
 
 - <要件化時の前提>
 
-## Open Questions
+## 未解決事項
 
 - <人間判断が必要な未確定事項>

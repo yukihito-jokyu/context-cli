@@ -15,13 +15,13 @@ tasks:
   format:
     desc: Format source code and documents.
     cmds:
-      - gofmt -w cmd internal
+      - gofmt -w cmd pkg
       - pnpm run format
 
   format:check:
     desc: Check source code and document formatting.
     cmds:
-      - test -z "$(gofmt -l cmd internal)"
+      - test -z "$(gofmt -l cmd pkg)"
       - pnpm run format:check
 
   typecheck:
