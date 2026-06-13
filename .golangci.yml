@@ -51,6 +51,8 @@ linters:
         - name: function-result-limit
           arguments:
             - 3
+        - name: package-comments
+          disabled: true
   exclusions:
     generated: strict
     rules:
