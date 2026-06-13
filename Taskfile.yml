@@ -15,13 +15,13 @@ tasks:
   format:
     desc: Format source code and documents.
     cmds:
-      - gofmt -w cmd pkg
+      - gofmt -w cmd pkg internal test
       - pnpm run format
 
   format:check:
     desc: Check source code and document formatting.
     cmds:
-      - test -z "$(gofmt -l cmd pkg)"
+      - test -z "$(gofmt -l cmd pkg internal test)"
       - pnpm run format:check
 
   typecheck:
@@ -33,6 +33,11 @@ tasks:
     desc: Run all Go tests.
     cmds:
       - go test ./...
+
+  test:e2e:
+    desc: Run Cobra-based local E2E tests.
+    cmds:
+      - go test ./test/e2e/...
 
   test:errors:
     desc: Run Go tests with failure-focused output.
