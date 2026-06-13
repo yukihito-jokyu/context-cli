@@ -1,39 +1,39 @@
-# API Architecture
+# APIアーキテクチャ
 
 Status: Draft
 Status Reason: <この状態である理由>
 Source: <参照元>。
 
 - <コード調査、PRD、architecture-change、ADRなど>
-  Related PRDs:
+  関連仕様書:
 - <PRD参照>
-  Related ADRs:
+  関連ADR:
 - <ADR参照>
 
-## API Summary
+## API概要
 
 <API概要。該当しない場合はNot applicable>。
 
-## Public Interfaces
+## 公開インターフェース
 
 - <公開API>
 
-## Internal Interfaces
+## 内部インターフェース
 
 - <内部API>
 
-## Authentication / Authorization
+## 認証・認可
 
 <認証認可>。
 
-## Error Model
+## エラーモデル
 
 <エラーモデル>。
 
-## Versioning Policy
+## バージョニング方針
 
 <バージョニング方針>。
 
-## Not Applicable Reason
+## 非該当の理由
 
 <該当しない場合の理由。該当する場合はNot applicable>。

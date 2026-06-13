@@ -1,60 +1,60 @@
-# Structure
+# ディレクトリ構造
 
 Status: Draft
 Status Reason: <この状態である理由>。
 
-## Structure Principles
+## 構造の原則
 
 - <構造原則>
 
-## Directory Structure
+## ディレクトリ構造
 
 ```text
 <主要ディレクトリ構造>
 ```
 
-## Directory Responsibilities
+## ディレクトリの責務
 
 - <ディレクトリと責務>
 
-## Module Boundaries
+## モジュール境界
 
 - <モジュール境界>
 
-## Dependency Direction
+## 依存方向
 
 - <許可する依存方向>
 
-## Placement Rules
+## 配置規則
 
 - <新規コードの配置規則>
 
-## Naming Rules
+## 命名規則
 
 - <命名規則>
 
-## Generated / Vendor Files
+## 生成ファイル・外部ファイル
 
 - <生成物または外部由来ファイルの扱い>
 
-## Extension Guidelines
+## 拡張ガイドライン
 
 - <構造を拡張する際の規則>
 
-## Related Decisions
+## 関連する決定事項
 
 - <ADR参照>
 
-## Assumptions
+## 前提条件
 
 - <人間が暫定的に許容した前提>
 
-## Open Questions
+## 未解決事項
 
-### Blocking
+### 開発ブロック事項
 
 - <最初のPRD開始前に解決する事項>
 
-### Deferred
+### 保留事項
 
 - <判断条件と決定予定フェーズを明記した保留事項>

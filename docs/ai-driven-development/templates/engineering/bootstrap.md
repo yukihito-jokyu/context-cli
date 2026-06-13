@@ -12,11 +12,11 @@ Status Reason: <現在の状態である理由>。
 - Development Rules: ./development-rules.md
 - Related Decisions: <関連ADR。なければNot applicable>
 
-## Scope
+## スコープ
 
 - <最初のPRD開始に必要な共通基盤>
 
-## Out of Scope
+## スコープ外
 
 - <bootstrapで扱わない事項>
 
@@ -24,35 +24,35 @@ Status Reason: <現在の状態である理由>。
 
 - <変更予定ファイルと内容>
 
-## Verification Plan
+## 検証計画
 
 - <実行する検証>
 
-## Risks
+## リスク
 
 - <リスク。なければNot applicable>
 
-## Rollback
+## ロールバック
 
 - <元へ戻す方法>
 
-## Actual Files Changed
+## 実際に変更されたファイル
 
 - <実際に変更したファイル>
 
-## Verification Results
+## 検証結果
 
 - <コマンドと結果>
 
-## Not Run Reasons
+## 未実行の理由
 
 - <未実行理由と代替検証。なければNot applicable>
 
-## Follow-up
+## 後続対応
 
 - <後続対応。なければNot applicable>
 
-## Code Review
+## コードレビュー
 
 - Status: <Pending | In Review | Blocked | Completed>
 - Findings: <Critical / High / Medium / Lowの指摘と解消状況>

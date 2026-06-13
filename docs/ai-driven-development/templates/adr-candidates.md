@@ -1,68 +1,64 @@
-# ADR Candidates
+# ADR 候補リスト (ADR Candidates)
 
-Status: Draft
-Status Reason: <この状態である理由>
-Source: <PRD IDまたはengineering-foundation>。
+仕様書ID: spec-XXX-<slug>
 
-## Candidates
+## 候補一覧
 
-### ADC-001: <Candidate Title>
+### ADC-001: <候補タイトル>
 
-<!-- 判断時期の固定値を1行で定義するため。 -->
+ステータス: Proposed
+判断の必要性: <判断が必要な理由>
+判断のタイミング: <Now / Before Implementation / Deferred>。
 
-Status: Proposed
-Decision Needed: <判断が必要な理由>
-Decision Timing: <Now / Before Implementation / Deferred>。
+関連仕様書:。
 
-Related PRDs:
+- <仕様書IDまたはNot applicable>
 
-- <PRD IDまたはNot applicable>
+関連ストーリー:。
 
-Related Stories:
+- <ストーリー IDまたはNot applicable>
 
-- <Story IDまたはNot applicable>
+関連要件:。
 
-Related Requirements:
+- <要件IDまたはNot applicable>
 
-- <Requirement IDまたはNot applicable>
-
-Related Architecture Changes:
+関連アーキテクチャ変更:。
 
 - <パスまたはNot applicable>
 
-Related ADRs:
+関連ADR:。
 
 - <ADRパス、関係、またはNot applicable>
 
-Options:
+選択肢:。
 
 - <選択肢>
 
-Evaluation Criteria:
+評価基準:。
 
 - <評価軸>
 
-Recommendation:
+推奨案:。
 
 - <推奨案と根拠>
 
-ADR Recommendation: <Create ADR / Do not create ADR>
-ADR Recommendation Reason:
+ADR推奨判定: <Create ADR / Do not create ADR>
+ADR推奨判定理由:。
 
 - <ADR化を推奨する、またはしない理由>
 
-Human Decision Reason:
+人間の決定理由:。
 
 - Not applicable
 
-Resulting ADR:
+作成されるADR:。
 
 - Not applicable
 
-## Assumptions
+## 前提条件
 
 - <前提。なければNot applicable>
 
-## Open Questions
+## 未解決事項
 
 - <未確定事項。なければNot applicable>
