@@ -15,7 +15,7 @@ Status Reason: 人間が、`config.yaml`の厳格デコードと値検証をdoma
 ## Implementation Rules
 
 - 必須: 依存方向 `cli → application → domain` を守り、循環依存を作らない。
-- 必須: infrastructureはapplicationが定義するI/Oポートとdomainの型にのみ依存し、具象ユースケースには依存しない。
+- 必須: infrastructureはdomainの型やapplicationのデータ構造にのみ依存し、具象ユースケースには依存しない。
 - 必須: CLIコマンド解析と対話UIの外部ライブラリは `internal/cli/` に閉じ込める。
 - 必須: `config.yaml`の厳格デコードと値検証を除き、YAMLエンコード、`map.yaml`を含むその他のYAMLデコード、XDGパス、ファイルロック、原子的置換、OSファイルAPIの実装を `internal/infrastructure/` に閉じ込める。
 - 必須: 長時間処理と中断可能な処理は `context.Context` を受け取り、キャンセルを伝播する。
