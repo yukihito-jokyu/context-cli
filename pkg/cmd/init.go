@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -40,14 +41,16 @@ func NewCmdInit(f *Factory) *cobra.Command {
 }
 
 // Complete は位置引数をパースし、オプションを設定します。
-func (o *InitOptions) Complete(cmd *cobra.Command, args []string) error {
+func (o *InitOptions) Complete(_ *cobra.Command, _ []string) error {
 	return nil
 }
+
+var errRepoRequired = errors.New("--repo flag is required")
 
 // Validate は提供されたオプションが有効であるか検証します。
 func (o *InitOptions) Validate() error {
 	if o.RepoPath == "" {
-		return fmt.Errorf("--repo flag is required")
+		return errRepoRequired
 	}
 	return nil
 }
@@ -64,6 +67,6 @@ func (o *InitOptions) Run() error {
 		return fmt.Errorf("failed to set context repository: %w", err)
 	}
 
-	fmt.Fprintf(o.Factory.IOOut, "Successfully initialized context repository at: %s\n", o.RepoPath)
+	_, _ = fmt.Fprintf(o.Factory.IOOut, "Successfully initialized context repository at: %s\n", o.RepoPath)
 	return nil
 }
