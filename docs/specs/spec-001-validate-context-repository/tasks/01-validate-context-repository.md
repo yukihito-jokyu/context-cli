@@ -85,7 +85,7 @@ sequenceDiagram
         Validator-->>Init: 検証済み絶対パス
         Init->>Config: Factory.Config()
         Config-->>Init: Config
-        Init->>Config: SetContextRepository(absolutePath)
+        Init->>Config: SetContextRepository("", absolutePath)
         Config-->>Init: 保存結果
         Init-->>User: 成功メッセージ
     end
