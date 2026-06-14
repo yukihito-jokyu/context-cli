@@ -49,6 +49,8 @@ AIコンテキストの原本とプロジェクト別配布定義を単一のCon
 - 配布先の編集は正本へ還元せず、正本への取り込みは初期版の対象外とする。
 - リポジトリ固有のSkillを同名の共通Skillより優先する。
 - `context init` は使用するContext Repositoryを設定する。
+- `context init` の設定はユーザー単位の `config.yaml` に保存し、後続のCLIプロセスでも再利用する。
+- Context Repositoryの変更を拒否した場合、既存設定を維持して正常終了する。
 - `context add` はプロジェクトと配布物を選択し、初回配布または再配布する。
 - `context sync` は選択済みの配布物だけをContext Repositoryの現在の内容へ更新する。
 - 配布物の選択と選択解除は `context add` で行う。
@@ -60,6 +62,8 @@ AIコンテキストの原本とプロジェクト別配布定義を単一のCon
 - Context Repositoryはローカルファイルシステム上にクローン済みであることを前提とする。
 - `context init` ではContext Repositoryの場所と必要な構造を検証する。
 - Context Repositoryの設定と配布先の管理情報は、配布先ではなくユーザー単位で管理する。
+- Context Repositoryが未設定の場合は正常な初期状態として扱い、検証済みのパスを初回設定として保存する。
+- Context Repositoryの設定変更は、現在値と変更先が異なる場合だけ確認し、承認された場合だけ保存する。
 - 配布先は `context add` 実行時のカレントディレクトリとする。
 - `context sync` は実行時のカレントディレクトリだけを対象とする。
 - 配布先の既存ファイル、Skill、ローカル編集との自動マージは行わない。
