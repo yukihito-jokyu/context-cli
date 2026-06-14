@@ -3,7 +3,6 @@ package distribution
 import (
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -17,15 +16,27 @@ type FileSystem interface {
 	Inspect(path string, kind PathKind, allowMissing bool) (PathExpectation, error)
 	Revalidate(expectations []PathExpectation) error
 	HashSkill(path string) (string, error)
-	Mkdir(path string, perm fs.FileMode) error
-	Stage(source, parent string) (string, error)
-	Backup(path string) (string, error)
-	Rename(oldPath, newPath string) error
-	RemoveAll(path string) error
-	Remove(path string) error
+	Mkdir(path string, parent PathExpectation, perm fs.FileMode) error
+	Stage(source string, parent PathExpectation) (string, error)
+	Backup(path string, parent PathExpectation, expected PathExpectation) (string, error)
+	Rename(operation RenameOperation) error
+	RemoveAll(path string, parent PathExpectation, expected PathExpectation) error
+	Remove(path string, parent PathExpectation, expected PathExpectation) error
 }
 
-type osFileSystem struct{}
+type fileSystemHooks struct {
+	beforeMkdir        func(path string)
+	beforeStage        func(parent string)
+	beforeBackup       func(path string)
+	beforeRename       func(oldPath, newPath string)
+	beforeRemove       func(path string)
+	beforeRemoveOpen   func(path string)
+	beforeRemoveUnlink func(path string) error
+}
+
+type osFileSystem struct {
+	hooks fileSystemHooks
+}
 
 // NewOSFileSystem はローカルファイルシステムを使う配布実装を返します。
 func NewOSFileSystem() FileSystem {
@@ -35,7 +46,7 @@ func NewOSFileSystem() FileSystem {
 func (osFileSystem) Inspect(path string, kind PathKind, allowMissing bool) (PathExpectation, error) {
 	info, err := os.Lstat(path)
 	if errors.Is(err, fs.ErrNotExist) && allowMissing {
-		return PathExpectation{Path: path}, nil
+		return PathExpectation{Path: path, Kind: kind}, nil
 	}
 	if err != nil {
 		return PathExpectation{}, newError("inspect", ErrIO, err)
@@ -43,6 +54,7 @@ func (osFileSystem) Inspect(path string, kind PathKind, allowMissing bool) (Path
 	if info.Mode()&fs.ModeSymlink != 0 {
 		return PathExpectation{}, newError("inspect", ErrSymlink, nil)
 	}
+	actualKind := pathKind(info.Mode())
 	switch kind {
 	case PathKindDirectory:
 		if !info.IsDir() {
@@ -52,12 +64,17 @@ func (osFileSystem) Inspect(path string, kind PathKind, allowMissing bool) (Path
 		if !info.Mode().IsRegular() {
 			return PathExpectation{}, newError("inspect", ErrFileType, nil)
 		}
+	case PathKindFIFO, PathKindSocket, PathKindDevice, PathKindOther:
+		if actualKind != kind {
+			return PathExpectation{}, newError("inspect", ErrFileType, nil)
+		}
+	case PathKindAny:
 	default:
 		return PathExpectation{}, newError("inspect", ErrStructure, nil)
 	}
 	device, inode := fileIdentity(info)
 	return PathExpectation{
-		Path: path, Exists: true, Kind: kind, Perm: info.Mode().Perm(), Device: device, Inode: inode,
+		Path: path, Exists: true, Kind: actualKind, Perm: info.Mode().Perm(), Device: device, Inode: inode,
 	}, nil
 }
 
@@ -82,149 +99,21 @@ func (osFileSystem) HashSkill(path string) (string, error) {
 	return HashSkill(path)
 }
 
-func (osFileSystem) Mkdir(path string, perm fs.FileMode) error {
-	if err := os.Mkdir(path, perm); err != nil {
-		return newError("create directory", ErrIO, err)
+func pathKind(mode fs.FileMode) PathKind {
+	switch {
+	case mode.IsDir():
+		return PathKindDirectory
+	case mode.IsRegular():
+		return PathKindRegularFile
+	case mode&fs.ModeNamedPipe != 0:
+		return PathKindFIFO
+	case mode&fs.ModeSocket != 0:
+		return PathKindSocket
+	case mode&fs.ModeDevice != 0:
+		return PathKindDevice
+	default:
+		return PathKindOther
 	}
-	return nil
-}
-
-func (osFileSystem) Stage(source, parent string) (string, error) {
-	sourceInfo, err := os.Lstat(source)
-	if err != nil {
-		return "", newError("stage inspect", ErrIO, err)
-	}
-	if sourceInfo.Mode()&fs.ModeSymlink != 0 || !sourceInfo.IsDir() {
-		return "", newError("stage inspect", ErrStructure, nil)
-	}
-	staging, err := os.MkdirTemp(parent, ".context-stage-*")
-	if err != nil {
-		return "", newError("stage create", ErrIO, err)
-	}
-	if err := os.Chmod(staging, sourceInfo.Mode().Perm()); err != nil {
-		_ = os.RemoveAll(staging)
-		return "", newError("stage chmod", ErrIO, err)
-	}
-	if err := copyDirectoryContents(source, staging); err != nil {
-		_ = os.RemoveAll(staging)
-		return "", err
-	}
-	if err := syncDirectory(staging); err != nil {
-		_ = os.RemoveAll(staging)
-		return "", err
-	}
-	return staging, nil
-}
-
-func (osFileSystem) Backup(path string) (string, error) {
-	parent := filepath.Dir(path)
-	backup, err := os.MkdirTemp(parent, ".context-backup-*")
-	if err != nil {
-		return "", newError("backup create", ErrIO, err)
-	}
-	if err := os.Remove(backup); err != nil {
-		return "", newError("backup prepare", ErrIO, err)
-	}
-	if err := os.Rename(path, backup); err != nil {
-		return "", newError("backup rename", ErrIO, err)
-	}
-	return backup, nil
-}
-
-func (osFileSystem) Rename(oldPath, newPath string) error {
-	if err := os.Rename(oldPath, newPath); err != nil {
-		return newError("rename", ErrIO, err)
-	}
-	return nil
-}
-
-func (osFileSystem) RemoveAll(path string) error {
-	if err := os.RemoveAll(path); err != nil {
-		return newError("remove tree", ErrIO, err)
-	}
-	return nil
-}
-
-func (osFileSystem) Remove(path string) error {
-	if err := os.Remove(path); err != nil {
-		return newError("remove directory", ErrIO, err)
-	}
-	return nil
-}
-
-//nolint:gocognit // 再帰コピーでは種別ごとの安全検証と同期を同じ走査で行います。
-func copyDirectoryContents(source, target string) error {
-	entries, err := os.ReadDir(source)
-	if err != nil {
-		return newError("stage read directory", ErrIO, err)
-	}
-	for _, entry := range entries {
-		sourcePath := filepath.Join(source, entry.Name())
-		targetPath := filepath.Join(target, entry.Name())
-		info, err := os.Lstat(sourcePath)
-		if err != nil {
-			return newError("stage inspect", ErrIO, err)
-		}
-		if info.Mode()&fs.ModeSymlink != 0 {
-			return newError("stage inspect", ErrSymlink, nil)
-		}
-		if info.IsDir() {
-			if err := os.Mkdir(targetPath, info.Mode().Perm()); err != nil {
-				return newError("stage create directory", ErrIO, err)
-			}
-			if err := copyDirectoryContents(sourcePath, targetPath); err != nil {
-				return err
-			}
-			if err := syncDirectory(targetPath); err != nil {
-				return err
-			}
-			continue
-		}
-		if !info.Mode().IsRegular() {
-			return newError("stage inspect", ErrFileType, nil)
-		}
-		if err := copyRegularFile(sourcePath, targetPath, info.Mode().Perm()); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func copyRegularFile(source, target string, perm fs.FileMode) error {
-	input, err := os.Open(source) // #nosec G304 -- Lstatで検証したSkill配下通常ファイルだけを開きます。
-	if err != nil {
-		return newError("stage open source", ErrIO, err)
-	}
-	defer func() { _ = input.Close() }()
-	output, err := os.OpenFile(target, os.O_CREATE|os.O_EXCL|os.O_WRONLY, perm) // #nosec G304 -- 検証済み配布先の一時領域だけへ作成します。
-	if err != nil {
-		return newError("stage create file", ErrIO, err)
-	}
-	var operationErr error
-	if _, err := io.Copy(output, input); err != nil {
-		operationErr = newError("stage copy file", ErrIO, err)
-	} else if err := output.Sync(); err != nil {
-		operationErr = newError("stage sync file", ErrIO, err)
-	}
-	if closeErr := output.Close(); closeErr != nil {
-		operationErr = errors.Join(operationErr, newError("stage close file", ErrIO, closeErr))
-	}
-	return operationErr
-}
-
-func syncDirectory(path string) error {
-	directory, err := os.Open(path) // #nosec G304 -- 検証済み配布先の一時ディレクトリだけを開きます。
-	if err != nil {
-		return newError("stage open directory", ErrIO, err)
-	}
-	var operationErr error
-	if err := directory.Sync(); err != nil {
-		operationErr = newError("stage sync directory", ErrIO, err)
-	}
-	if err := directory.Close(); err != nil {
-		operationErr = errors.Join(operationErr, newError("stage close directory", ErrIO, err))
-	}
-	return operationErr
 }
 
 func fileIdentity(info fs.FileInfo) (uint64, uint64) {
