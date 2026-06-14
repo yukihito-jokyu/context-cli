@@ -134,6 +134,7 @@ func (osFileSystem) OpenDir(path string) (File, error) {
 }
 
 func (osFileSystem) Flock(file File) error {
+	// #nosec G115 -- Unixシステムにおいてファイル記述子は十分にintの範囲に収まり、オーバーフローのリスクがないため警告を抑制します。
 	if err := unix.Flock(int(file.Fd()), unix.LOCK_EX|unix.LOCK_NB); err != nil {
 		return fmt.Errorf("排他ロック取得: %w", err)
 	}
@@ -141,6 +142,7 @@ func (osFileSystem) Flock(file File) error {
 }
 
 func (osFileSystem) Funlock(file File) error {
+	// #nosec G115 -- Unixシステムにおいてファイル記述子は十分にintの範囲に収まり、オーバーフローのリスクがないため警告を抑制します。
 	if err := unix.Flock(int(file.Fd()), unix.LOCK_UN); err != nil {
 		return fmt.Errorf("排他ロック解放: %w", err)
 	}
