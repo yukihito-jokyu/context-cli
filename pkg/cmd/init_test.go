@@ -355,9 +355,13 @@ type stubRepositoryValidator struct {
 	validatedPath string
 	err           error
 	input         string
+	call          func()
 }
 
 func (v *stubRepositoryValidator) Validate(path string) (string, error) {
+	if v.call != nil {
+		v.call()
+	}
 	v.input = path
 	return v.validatedPath, v.err
 }
