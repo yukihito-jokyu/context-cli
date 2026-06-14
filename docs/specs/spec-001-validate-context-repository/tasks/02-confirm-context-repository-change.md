@@ -22,9 +22,11 @@ flowchart TD
     I --> P{"確認出力に成功したか"}
     P -- "いいえ" --> V["元エラーをラップした確認出力エラーを返す"]
     P -- "はい" --> J["1行入力を読み取る"]
-    J --> K{"改行まで正常に読み取れ、空白除去後が小文字 y か"}
-    K -- "いいえ" --> Z["設定変更キャンセルエラーを返す"]
-    K -- "はい" --> N
+    J --> K{"入力を読み取れたか、またはEOFか"}
+    K -- "いいえ" --> Q["元エラーをラップした入力エラーを返す"]
+    K -- "はい" --> L{"空白除去後が小文字 y か"}
+    L -- "いいえ" --> Z["設定を変更せず正常終了"]
+    L -- "はい" --> N
     N --> O{"保存に成功したか"}
     O -- "いいえ" --> W["設定保存エラーを返す"]
     O -- "はい" --> S
@@ -34,8 +36,9 @@ flowchart TD
 ```
 
 - 承認入力は、前後の空白と改行を除去した結果が小文字の `y` と完全一致する場合だけ有効とする。
-- `Y`、`yes`、空入力、その他の入力、EOF、読み取りエラーはすべて設定変更キャンセルとして扱う。
-- EOF時に改行なしの `y` が読み取れていても承認しない。
+- `Y`、`yes`、空入力、その他の入力、空のEOFは設定を変更せず正常終了する。
+- EOF時は読み取った内容にかかわらず設定を変更せず正常終了する。
+- 入力ストリームの読み取りエラーは文脈付きエラーとして返す。
 - 初回設定では確認せず保存する。同一パスでは確認や設定更新を行わず、成功メッセージだけを出力する。
 - 既存設定値は、タスク01の検証後に保存された字句的に正規化済み絶対パスであることをConfigの契約とする。旧形式の相対パスや未正規化パスとの互換処理は行わない。
 
@@ -61,7 +64,7 @@ sequenceDiagram
         Init->>Config: GetContextRepository()
         Config-->>Init: currentPath
         alt currentPath が空
-            Init->>Config: SetContextRepository(validatedPath)
+            Init->>Config: SetContextRepository("", validatedPath)
             Config-->>Init: 保存結果
         else currentPath と validatedPath が同一
             Note over Init,Config: 確認と保存を省略
@@ -73,10 +76,12 @@ sequenceDiagram
             else 確認出力成功
                 IO-->>Init: 1行入力
                 alt 小文字 y と完全一致
-                    Init->>Config: SetContextRepository(validatedPath)
+                    Init->>Config: SetContextRepository(currentPath, validatedPath)
                     Config-->>Init: 保存結果
-                else 拒否、EOF、読み取りエラー
-                    Init-->>User: ErrRepositoryChangeCanceled
+                else 拒否、EOF
+                    Init-->>User: 設定を変更せず正常終了
+                else 入力読み取りエラー
+                    Init-->>User: 元エラーをラップした入力エラー
                 end
             end
         end
@@ -92,21 +97,21 @@ sequenceDiagram
 
 ## 3. ファイル配置・責務定義
 
-- `[MODIFY]` `pkg/cmd/init.go`: 設定取得後に現在値と検証済みパスを比較する。異なる既存値がある場合だけ確認内容を `Factory.IOOut` へ表示し、書き込み成功後に `Factory.IOIn` から1行を読み取る。小文字の `y` だけを承認し、拒否、EOF、読み取りエラーでは判定可能な `ErrRepositoryChangeCanceled` を返す。同一パスでは `SetContextRepository` を呼ばず成功扱いにする。確認出力と成功出力の書き込みエラーを無視せず、安全な固定文言と内部原因を分離する非公開エラー型で返す。この型の `Error()` はパスを含まない固定文言、`Unwrap()` は元エラーを返す。
-- `[MODIFY]` `pkg/cmd/init_test.go`: `InitOptions.Run` を直接呼ぶ既存テーブルを拡張し、初回設定、同一パス、変更承認、`Y`、`yes`、空入力、任意入力、EOF、読み取りエラー、確認出力失敗、保存失敗、成功出力失敗を検証する。確認出力、入力呼び出し有無、保存呼び出し回数、成功出力、`errors.Is` によるキャンセルおよびI/Oエラー判定も確認する。書き込みエラーには絶対パスを持つ `*os.PathError` を使用し、`errors.Is` が成立しつつ表示文字列へパスが漏れないことを確認する。
+- `[MODIFY]` `pkg/cmd/init.go`: 設定取得後に現在値と検証済みパスを比較する。異なる既存値がある場合だけ確認内容を `Factory.IOOut` へ表示し、書き込み成功後に `Factory.IOIn` から1行を読み取る。小文字の `y` だけを承認し、拒否とEOFでは設定を変更せず正常終了する。入力読み取りエラーは安全な固定文言と内部原因を分離して返す。同一パスでは `SetContextRepository` を呼ばず成功扱いにする。
+- `[MODIFY]` `pkg/cmd/init_test.go`: `InitOptions.Run` を直接呼ぶ既存テーブルを拡張し、初回設定、同一パス、変更承認、`Y`、`yes`、空入力、任意入力、EOF、読み取りエラー、確認出力失敗、保存失敗、成功出力失敗を検証する。確認出力、入力呼び出し有無、保存呼び出し回数、成功出力、拒否時の正常終了、`errors.Is` によるI/Oエラー判定も確認する。I/Oエラーには絶対パスを持つ `*os.PathError` を使用し、`errors.Is` が成立しつつ表示文字列へパスが漏れないことを確認する。
 - `[MODIFY]` `test/e2e/harness_test.go`: テーブル要素から初期設定値と標準入力を注入できるようにし、保存呼び出し回数を記録する。利用者の実設定や標準入力は使用しない。
-- `[MODIFY]` `test/e2e/init_test.go`: 既存のテーブル駆動E2Eに、異なる設定からの変更承認、変更拒否、同一パス再指定のシナリオを追加する。確認表示、保存結果、保存回数、成功またはキャンセルを公開CLI境界から検証する。
+- `[MODIFY]` `test/e2e/init_test.go`: 既存のテーブル駆動E2Eに、異なる設定からの変更承認、変更拒否、同一パス再指定のシナリオを追加する。確認表示、保存結果、保存回数、承認時の成功または拒否時の正常終了を公開CLI境界から検証する。
 - `[MODIFY]` `test/e2e/README.md`: 追加するシナリオID、事前条件、入力、期待結果、対応サブテスト名、個別実行方法を追記し、人間が設定変更フローを一覧で確認できるようにする。
 
 ## 4. 実装チェックリスト
 
 - [x] `InitOptions.Run` の設定変更分岐をテーブル駆動テストへ先に追加する
-- [x] `ErrRepositoryChangeCanceled` の `errors.Is` 契約をテストする
+- [x] 変更拒否がエラーを返さず正常終了することをテストする
 - [x] 初回設定では確認せず保存する処理を維持する
 - [x] 同一パスでは確認と保存を省略する
 - [x] 異なるパスでは現在値、変更先、<!-- textlint-disable ja-technical-writing/no-mix-dearu-desumasu -->`変更しますか? [y/N]`<!-- textlint-enable ja-technical-writing/no-mix-dearu-desumasu --> を出力する
 - [x] 小文字の `y` だけを承認し、承認後だけ保存する
-- [x] 拒否、EOF、読み取りエラーでは設定を変更せずキャンセルエラーを返す
+- [x] 拒否とEOFでは設定を変更せず正常終了し、読み取りエラーは文脈付きエラーを返す
 - [x] 確認出力の失敗時は入力と保存をせず、安全な固定文言と元の書き込みエラーを分離して返す
 - [x] 成功出力の失敗時は保存結果を戻さず、安全な固定文言と元の書き込みエラーを分離して返す
 - [x] 出力エラーの表示文字列へ内部I/Oエラー由来のパスが漏洩しないことを検証する
@@ -123,9 +128,9 @@ sequenceDiagram
   - 同一パスは確認出力なし、保存0回で成功する。
   - 異なるパスへ `y\n` または前後に空白を含む `y` を入力すると、現在値と変更先を表示して1回保存する。
 - **異常系・境界条件**:
-  - `Y`、`yes`、空行、その他の文字列は保存0回で `ErrRepositoryChangeCanceled` を返す。
-  - 入力が空のEOF、または改行なしの `y` とEOFの場合も保存0回でキャンセルする。
-  - `IOIn` の読み取りエラーは保存0回でキャンセルし、`errors.Is(err, ErrRepositoryChangeCanceled)` が成立する。
+  - `Y`、`yes`、空行、その他の文字列は保存0回で正常終了する。
+  - 入力が空のEOFと改行なしの `y` とEOFは、いずれも保存0回で正常終了する。
+  - `IOIn` の読み取りエラーは保存0回で失敗し、元エラーを `errors.Is` で判定できる。
   - 確認出力の書き込みエラーでは入力0回、保存0回となり、元エラーを `errors.Is` で判定できる。元エラーが保持する絶対パスは表示文字列に含めない。
   - 確認出力後の保存失敗は既存の設定保存エラー契約を維持し、成功メッセージを出力しない。
   - 初回設定、同一パス、承認後の成功出力が失敗した場合は元エラーを `errors.Is` で判定でき、元エラーが保持する絶対パスは表示文字列に含めない。保存が先に成功した場合は設定値をロールバックしない。
@@ -135,13 +140,14 @@ sequenceDiagram
 
 ## 6. エラー・出力契約
 
-- キャンセルは公開センチネルエラー `ErrRepositoryChangeCanceled` とし、呼び出し側が `errors.Is` で判定できるようにする。
+- 拒否とEOFは正常な非変更として扱い、エラーを返さない。
 - 拒否、EOF、読み取りエラーのいずれでも、設定値と成功メッセージは変更・出力しない。
+- 入力読み取りエラーは固定文言 `failed to read repository change confirmation` で返し、内部原因を `Unwrap()` で取得可能にする。
 - 確認時は `Factory.IOOut` へ <!-- textlint-disable ja-technical-writing/no-mix-dearu-desumasu -->`Current context repository: <現在値>\nNew context repository: <変更先>\n変更しますか? [y/N] `<!-- textlint-enable ja-technical-writing/no-mix-dearu-desumasu --> を出力する。
 - 確認出力の書き込みに失敗した場合、入力と保存はせず、安全な固定文言を返す。内部原因は `Unwrap()` で取得可能にし、`Error()` へ内部原因の文字列を連結しない。
 - 成功メッセージの書き込みに失敗した場合も、安全な固定文言と内部原因を分離して返す。既に保存済みの場合はロールバックしない。
 - 確認出力失敗の固定文言は `failed to write repository change confirmation`、成功出力失敗の固定文言は `failed to write initialization success message` とする。
-- 確認画面のパスは利用者が承認する対象なので表示を許可する。キャンセルエラー自体にはパスを含めない。
+- 確認画面のパスは利用者が承認する対象なので表示を許可する。入力読み取りエラーにはパスを含めない。
 
 ## 7. タスク境界
 
@@ -153,7 +159,7 @@ sequenceDiagram
 
 ### 変更ファイル
 
-- `pkg/cmd/init.go`: 既存設定との比較、変更確認、小文字 `y` の承認、キャンセルセンチネル、出力エラーの安全なラップを実装した。
+- `pkg/cmd/init.go`: 既存設定との比較、変更確認、小文字 `y` の承認、拒否時の正常終了、I/Oエラーの安全なラップを実装した。
 - `pkg/cmd/init_test.go`: 初回設定、同一パス、承認、拒否、EOF、入力エラー、出力エラー、保存エラーをテーブル駆動で検証した。
 - `test/e2e/harness_test.go`: 初期設定値と標準入力の注入、保存呼び出し回数の記録に対応した。
 - `test/e2e/init_test.go`: `INIT-005` 変更承認、`INIT-006` 変更拒否、`INIT-007` 同一パス再指定を追加した。
