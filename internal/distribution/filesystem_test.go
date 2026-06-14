@@ -272,7 +272,7 @@ func TestOSFileSystem(t *testing.T) {
 				}
 				fileSystem := osFileSystem{hooks: fileSystemHooks{
 					beforeBackup: func(string) {
-						if err := os.Remove(target); err != nil {
+						if err := os.Rename(target, target+"-original"); err != nil {
 							t.Fatal(err)
 						}
 						if err := os.WriteFile(target, []byte("replacement"), 0o600); err != nil {
