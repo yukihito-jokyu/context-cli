@@ -1,4 +1,4 @@
-# init E2E テスト
+# init / add E2E テスト
 
 `test/e2e` は公開されたCobraコマンド境界から `context init --repo` の処理フローを確認する。
 各テストは一時ディレクトリとメモリ内Configを使用し、利用者の実設定を変更しない。
@@ -50,3 +50,16 @@ go test ./test/e2e/... -run 'TestE2E_InitPersistence/PERSIST-001-same-path$' -v
 
 E2Eテストはシナリオを一覧しやすいテーブル駆動テストとして記述する。
 シナリオを追加または変更する場合は、対応するテーブル要素とこの表を同じ変更で更新する。
+
+## add初回配布
+
+`TestAddDistributesSkillsAndPersistsMap` は実バイナリを固定サイズの擬似TTY上で起動し、
+各プロンプト文字列を待ってからキー入力する。プロジェクト固有Skillと共通Skillを
+Codex・Claude双方へ配布し、複数ファイル、実行権限、`map.yaml`の内容と`0600`を確認する。
+
+`TestAddRejectsExistingUnmanagedSkillWithoutChanges` は配布予定先に同名Skillがある状態で
+初回配布し、既存内容と管理情報を変更せず競合終了することを確認する。
+
+```bash
+go test ./test/e2e -run TestAdd -v
+```
