@@ -4,6 +4,7 @@ go 1.26.3
 
 require (
 	github.com/charmbracelet/huh v1.0.0
+	github.com/creack/pty v1.1.24
 	github.com/spf13/cobra v1.10.2
 	go.yaml.in/yaml/v3 v3.0.4
 	golang.org/x/sys v0.36.0
