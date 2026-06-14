@@ -2,13 +2,35 @@ package e2e_test
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
+	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/yukihito-jokyu/context-cli/pkg/cmd"
 )
+
+var (
+	errMemoryConfigConflict = errors.New("設定値が変更されています")
+	errTestFileLocation     = errors.New("テストファイルの位置を取得できません")
+)
+
+const binaryBuildTimeout = 30 * time.Second
+
+//nolint:gochecknoglobals // TestMainと各テストで遅延ビルド結果を共有する。
+var binaryHarness struct {
+	once       sync.Once
+	binaryPath string
+	tempDir    string
+	err        error
+}
 
 type harness struct {
 	factory *cmd.Factory
@@ -53,7 +75,10 @@ func (c *memoryConfig) GetContextRepository() string {
 	return c.repository
 }
 
-func (c *memoryConfig) SetContextRepository(path string) error {
+func (c *memoryConfig) SetContextRepository(expected, path string) error {
+	if c.repository != expected {
+		return errMemoryConfigConflict
+	}
 	c.setCalls++
 	c.repository = path
 	return nil
@@ -91,4 +116,138 @@ func changeWorkingDirectory(t *testing.T, path string) {
 			t.Errorf("作業ディレクトリを復元できません: %v", err)
 		}
 	})
+}
+
+type processResult struct {
+	exitCode int
+	stdout   string
+	stderr   string
+}
+
+type processRequest struct {
+	xdgConfigHome    string
+	workingDirectory string
+	stdin            string
+	args             []string
+}
+
+func TestMain(m *testing.M) {
+	code := m.Run()
+	if binaryHarness.tempDir != "" {
+		if err := os.RemoveAll(binaryHarness.tempDir); err != nil {
+			_, _ = fmt.Fprintln(os.Stderr, "E2E用一時バイナリの削除に失敗しました")
+			if code == 0 {
+				code = 1
+			}
+		}
+	}
+	os.Exit(code)
+}
+
+func contextBinary(t *testing.T) string {
+	t.Helper()
+	binaryHarness.once.Do(buildContextBinary)
+	if binaryHarness.err != nil {
+		t.Fatalf("実バイナリをビルドできません: %v", binaryHarness.err)
+	}
+	return binaryHarness.binaryPath
+}
+
+func buildContextBinary() {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		binaryHarness.err = errTestFileLocation
+		return
+	}
+	repositoryRoot, err := filepath.EvalSymlinks(filepath.Join(filepath.Dir(filename), "..", ".."))
+	if err != nil {
+		binaryHarness.err = fmt.Errorf("リポジトリルートの実体パスを取得: %w", err)
+		return
+	}
+	rawTempDir, err := os.MkdirTemp("", "context-cli-e2e-*")
+	if err != nil {
+		binaryHarness.err = fmt.Errorf("一時ディレクトリを作成: %w", err)
+		return
+	}
+	tempDir, err := filepath.EvalSymlinks(rawTempDir)
+	if err != nil {
+		_ = os.RemoveAll(rawTempDir)
+		binaryHarness.err = fmt.Errorf("一時ディレクトリの実体パスを取得: %w", err)
+		return
+	}
+	binaryHarness.tempDir = tempDir
+	binaryHarness.binaryPath = filepath.Join(tempDir, "context")
+
+	ctx, cancel := context.WithTimeout(context.Background(), binaryBuildTimeout)
+	defer cancel()
+	command := exec.CommandContext(ctx, "go", "build", "-o", binaryHarness.binaryPath, "./cmd/context") //nolint:gosec // 固定コマンドをテスト用一時パスへ出力する。
+	command.Dir = repositoryRoot
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	command.Stdout = &stdout
+	command.Stderr = &stderr
+	if err := command.Run(); err != nil {
+		if ctx.Err() != nil {
+			binaryHarness.err = fmt.Errorf(
+				"go buildがタイムアウト: %w\nstdout:\n%s\nstderr:\n%s",
+				ctx.Err(),
+				stdout.String(),
+				stderr.String(),
+			)
+			return
+		}
+		binaryHarness.err = fmt.Errorf(
+			"go buildに失敗: %w\nstdout:\n%s\nstderr:\n%s",
+			err,
+			stdout.String(),
+			stderr.String(),
+		)
+	}
+}
+
+func runContextProcess(
+	t *testing.T,
+	request processRequest,
+) processResult {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	command := exec.CommandContext(ctx, contextBinary(t), request.args...) //nolint:gosec // テストが構築した実バイナリだけを起動する。
+	command.Dir = request.workingDirectory
+	command.Env = []string{"XDG_CONFIG_HOME=" + request.xdgConfigHome}
+	command.Stdin = strings.NewReader(request.stdin)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	command.Stdout = &stdout
+	command.Stderr = &stderr
+
+	err := command.Run()
+	result := processResult{
+		exitCode: 0,
+		stdout:   stdout.String(),
+		stderr:   stderr.String(),
+	}
+	if ctx.Err() != nil {
+		t.Fatalf(
+			"contextプロセスがタイムアウトしました\nstdout:\n%s\nstderr:\n%s",
+			result.stdout,
+			result.stderr,
+		)
+	}
+	if err == nil {
+		return result
+	}
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		result.exitCode = exitErr.ExitCode()
+		return result
+	}
+	t.Fatalf(
+		"contextプロセスを起動できません: %v\nstdout:\n%s\nstderr:\n%s",
+		err,
+		result.stdout,
+		result.stderr,
+	)
+	return processResult{}
 }
