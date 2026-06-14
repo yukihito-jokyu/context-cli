@@ -63,3 +63,24 @@ Codex・Claude双方へ配布し、複数ファイル、実行権限、`map.yaml
 ```bash
 go test ./test/e2e -run TestAdd -v
 ```
+
+## sync同期
+
+`TestSyncE2E_Success_NoTTY` などの `TestSyncE2E_*` テストは実バイナリと一時ディレクトリを使用し、`context sync` コマンドによる同期プロセス全体を検証する。
+
+| ID       | 事前条件                                                    | 操作 / 入力                           | 期待結果                                                               | 対応テスト名                                   |
+| -------- | ----------------------------------------------------------- | ------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------- |
+| SYNC-001 | 競合やローカル変更のない環境                                | `context sync` (非TTY)                | 2件のSkillを更新し、0件を削除しました。配布先とmap.yamlが更新される    | `TestSyncE2E_Success_NoTTY`                    |
+| SYNC-002 | 同期対象に変更がない状態                                    | `context sync` (非TTY)                | 同期対象に変更はありません。ファイルとmap.yamlは変化しない             | `TestSyncE2E_NoChange`                         |
+| SYNC-003 | 供給元から一部Skillが消失した状態                           | `context sync` (非TTY)                | 消失Skillが配布先とmap.yamlから削除され、他Skillは維持される           | `TestSyncE2E_DeleteSkill`                      |
+| SYNC-004 | すべてのSkillが消失した状態                                 | `context sync` (非TTY)                | 全Skillが削除され、map.yamlからWorkspace記録が完全に削除される         | `TestSyncE2E_DeleteAllSkills`                  |
+| SYNC-005 | 未選択Skillが供給元に追加された状態、既存の未管理配布物あり | `context sync` (非TTY)                | 未選択Skillは配布されず、既存の未管理配布物は内容・mtime・管理記録不変 | `TestSyncE2E_UnselectedSkill`                  |
+| SYNC-006 | 配布先にローカル変更があり、TTYで実行                       | `context sync` で `n` (拒否) を選択   | 同期を中止し、ファイルとmap.yamlは一切変更されない                     | `TestSyncE2E_Interactive_Confirm` の Reject部  |
+| SYNC-007 | 配布先にローカル変更があり、TTYで実行                       | `context sync` で Ctrl-C (キャンセル) | 同期を中止し、ファイルとmap.yamlは一切変更されない                     | `TestSyncE2E_Interactive_Confirm` の Cancel部  |
+| SYNC-008 | 配布先にローカル変更があり、TTYで実行                       | `context sync` で `y` (承認) を選択   | 同期を実行し、ローカル変更のある配布先を更新する                       | `TestSyncE2E_Interactive_Confirm` の Approve部 |
+
+### 実行方法
+
+```bash
+go test ./test/e2e -run TestSyncE2E -v
+```
