@@ -18,7 +18,6 @@ var (
 	errValidationTest = errors.New("validation failed")
 	errConfigLoadTest = errors.New("config load failed")
 	errConfigSaveTest = errors.New("config save failed")
-	errInputTest      = errors.New("input failed")
 )
 
 type initRunCase struct {
@@ -34,6 +33,7 @@ type initRunCase struct {
 	wantErr           error
 	wantConfigCalls   int
 	wantSetCalls      int
+	wantExpected      string
 	wantSaved         string
 	wantOutput        string
 	wantReadCalls     int
@@ -57,6 +57,11 @@ func TestInitOptionsRun(t *testing.T) {
 		Path: "/secret/success/output",
 		Err:  fs.ErrPermission,
 	}
+	inputReadErr := &os.PathError{
+		Op:   "read",
+		Path: "/secret/confirmation/input",
+		Err:  fs.ErrPermission,
+	}
 
 	tests := []initRunCase{
 		{
@@ -64,6 +69,7 @@ func TestInitOptionsRun(t *testing.T) {
 			validator:       &stubRepositoryValidator{validatedPath: validatedPath},
 			wantConfigCalls: 1,
 			wantSetCalls:    1,
+			wantExpected:    "",
 			wantSaved:       validatedPath,
 			wantOutput:      success,
 		},
@@ -82,6 +88,7 @@ func TestInitOptionsRun(t *testing.T) {
 			input:             "y\n",
 			wantConfigCalls:   1,
 			wantSetCalls:      1,
+			wantExpected:      currentPath,
 			wantSaved:         validatedPath,
 			wantOutput:        confirmation + success,
 			wantReadCalls:     1,
@@ -93,6 +100,7 @@ func TestInitOptionsRun(t *testing.T) {
 			input:             "  y \t\n",
 			wantConfigCalls:   1,
 			wantSetCalls:      1,
+			wantExpected:      currentPath,
 			wantSaved:         validatedPath,
 			wantOutput:        confirmation + success,
 			wantReadCalls:     1,
@@ -102,7 +110,6 @@ func TestInitOptionsRun(t *testing.T) {
 			validator:         &stubRepositoryValidator{validatedPath: validatedPath},
 			currentRepository: currentPath,
 			input:             "Y\n",
-			wantErr:           ErrRepositoryChangeCanceled,
 			wantConfigCalls:   1,
 			wantSaved:         currentPath,
 			wantOutput:        confirmation,
@@ -113,7 +120,6 @@ func TestInitOptionsRun(t *testing.T) {
 			validator:         &stubRepositoryValidator{validatedPath: validatedPath},
 			currentRepository: currentPath,
 			input:             "yes\n",
-			wantErr:           ErrRepositoryChangeCanceled,
 			wantConfigCalls:   1,
 			wantSaved:         currentPath,
 			wantOutput:        confirmation,
@@ -124,7 +130,6 @@ func TestInitOptionsRun(t *testing.T) {
 			validator:         &stubRepositoryValidator{validatedPath: validatedPath},
 			currentRepository: currentPath,
 			input:             "\n",
-			wantErr:           ErrRepositoryChangeCanceled,
 			wantConfigCalls:   1,
 			wantSaved:         currentPath,
 			wantOutput:        confirmation,
@@ -135,7 +140,6 @@ func TestInitOptionsRun(t *testing.T) {
 			validator:         &stubRepositoryValidator{validatedPath: validatedPath},
 			currentRepository: currentPath,
 			input:             "n\n",
-			wantErr:           ErrRepositoryChangeCanceled,
 			wantConfigCalls:   1,
 			wantSaved:         currentPath,
 			wantOutput:        confirmation,
@@ -145,7 +149,6 @@ func TestInitOptionsRun(t *testing.T) {
 			name:              "空のEOFでは変更をキャンセルする",
 			validator:         &stubRepositoryValidator{validatedPath: validatedPath},
 			currentRepository: currentPath,
-			wantErr:           ErrRepositoryChangeCanceled,
 			wantConfigCalls:   1,
 			wantSaved:         currentPath,
 			wantOutput:        confirmation,
@@ -156,22 +159,22 @@ func TestInitOptionsRun(t *testing.T) {
 			validator:         &stubRepositoryValidator{validatedPath: validatedPath},
 			currentRepository: currentPath,
 			input:             "y",
-			wantErr:           ErrRepositoryChangeCanceled,
 			wantConfigCalls:   1,
 			wantSaved:         currentPath,
 			wantOutput:        confirmation,
 			wantReadCalls:     2,
 		},
 		{
-			name:              "入力エラーでは変更をキャンセルする",
+			name:              "入力エラーを返す",
 			validator:         &stubRepositoryValidator{validatedPath: validatedPath},
 			currentRepository: currentPath,
-			inputErr:          errInputTest,
-			wantErr:           ErrRepositoryChangeCanceled,
+			inputErr:          inputReadErr,
+			wantErr:           inputReadErr,
 			wantConfigCalls:   1,
 			wantSaved:         currentPath,
 			wantOutput:        confirmation,
 			wantReadCalls:     1,
+			wantErrorText:     "failed to read repository change confirmation",
 		},
 		{
 			name:              "確認出力失敗では入力と保存を行わない",
@@ -194,6 +197,7 @@ func TestInitOptionsRun(t *testing.T) {
 			wantErr:           errConfigSaveTest,
 			wantConfigCalls:   1,
 			wantSetCalls:      1,
+			wantExpected:      currentPath,
 			wantSaved:         currentPath,
 			wantOutput:        confirmation,
 			wantReadCalls:     1,
@@ -206,6 +210,7 @@ func TestInitOptionsRun(t *testing.T) {
 			wantErr:         successWriteErr,
 			wantConfigCalls: 1,
 			wantSetCalls:    1,
+			wantExpected:    "",
 			wantSaved:       validatedPath,
 			wantErrorText:   "failed to write initialization success message",
 		},
@@ -230,6 +235,7 @@ func TestInitOptionsRun(t *testing.T) {
 			wantErr:           successWriteErr,
 			wantConfigCalls:   1,
 			wantSetCalls:      1,
+			wantExpected:      currentPath,
 			wantSaved:         validatedPath,
 			wantOutput:        confirmation,
 			wantReadCalls:     1,
@@ -283,6 +289,9 @@ func runInitCase(t *testing.T, tt initRunCase) {
 	if config.setCalls != tt.wantSetCalls {
 		t.Errorf("SetContextRepository calls = %d, want %d", config.setCalls, tt.wantSetCalls)
 	}
+	if config.expectedPath != tt.wantExpected {
+		t.Errorf("expected path = %q, want %q", config.expectedPath, tt.wantExpected)
+	}
 	if config.savedPath != tt.wantSaved {
 		t.Errorf("saved path = %q, want %q", config.savedPath, tt.wantSaved)
 	}
@@ -295,11 +304,17 @@ func runInitCase(t *testing.T, tt initRunCase) {
 	if tt.wantErrorText != "" && (err == nil || err.Error() != tt.wantErrorText) {
 		t.Errorf("error text = %q, want %q", err, tt.wantErrorText)
 	}
-	if tt.outputErr != nil && err != nil && strings.Contains(err.Error(), tt.outputErr.Error()) {
-		t.Errorf("error message leaks internal I/O error: %q", err)
-	}
+	assertInitIOErrorHidden(t, err, tt.outputErr, "output")
+	assertInitIOErrorHidden(t, err, tt.inputErr, "input")
 	if tt.validator.input != "input/context" {
 		t.Errorf("validator input = %q, want %q", tt.validator.input, "input/context")
+	}
+}
+
+func assertInitIOErrorHidden(t *testing.T, err, ioErr error, target string) {
+	t.Helper()
+	if ioErr != nil && err != nil && strings.Contains(err.Error(), ioErr.Error()) {
+		t.Errorf("error message leaks internal %s error: %q", target, err)
 	}
 }
 
@@ -348,17 +363,19 @@ func (v *stubRepositoryValidator) Validate(path string) (string, error) {
 }
 
 type recordingConfig struct {
-	savedPath string
-	setErr    error
-	setCalls  int
+	savedPath    string
+	expectedPath string
+	setErr       error
+	setCalls     int
 }
 
 func (c *recordingConfig) GetContextRepository() string {
 	return c.savedPath
 }
 
-func (c *recordingConfig) SetContextRepository(path string) error {
+func (c *recordingConfig) SetContextRepository(expected, path string) error {
 	c.setCalls++
+	c.expectedPath = expected
 	if c.setErr != nil {
 		return c.setErr
 	}
