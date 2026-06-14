@@ -2,12 +2,15 @@ package skillcatalog
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
+
+	"golang.org/x/sys/unix"
 )
 
 var errCatalogIOTest = errors.New("catalog io")
@@ -427,6 +430,13 @@ func mustSymlink(t *testing.T, target, path string) {
 	}
 }
 
+func unixMkfifo(path string, mode os.FileMode) error {
+	if err := unix.Mkfifo(path, uint32(mode)); err != nil {
+		return fmt.Errorf("failed to create fifo: %w", err)
+	}
+	return nil
+}
+
 func realCatalogTempDir(t *testing.T) string {
 	t.Helper()
 	root, err := filepath.EvalSymlinks(t.TempDir())
@@ -479,3 +489,230 @@ func (e catalogDirEntry) Name() string               { return e.name }
 func (e catalogDirEntry) IsDir() bool                { return true }
 func (e catalogDirEntry) Type() os.FileMode          { return os.ModeDir }
 func (e catalogDirEntry) Info() (os.FileInfo, error) { return catalogFileInfo{mode: os.ModeDir}, nil }
+
+func TestCatalogResolvesRecordedSources(t *testing.T) {
+	root := realCatalogTempDir(t)
+	// プロジェクト固有Skillはalpha有効、betaはSKILL.md欠落、gammaは個別Skill欠落
+	mustMkdirAll(t, filepath.Join(root, "projects", "project", "skills", "alpha"))
+	mustWriteFile(t, filepath.Join(root, "projects", "project", "skills", "alpha", "SKILL.md"))
+	mustMkdirAll(t, filepath.Join(root, "projects", "project", "skills", "beta"))
+	// 共通Skillはcommon有効、vanishは個別Skill欠落
+	mustMkdirAll(t, filepath.Join(root, "utils", "skills", "common"))
+	mustWriteFile(t, filepath.Join(root, "utils", "skills", "common", "SKILL.md"))
+
+	refs := []RecordedSkillRef{
+		{Name: "common", Source: SkillSourceCommon},
+		{Name: "alpha", Source: SkillSourceProject},
+		{Name: "beta", Source: SkillSourceProject},
+		{Name: "gamma", Source: SkillSourceProject},
+		{Name: "vanish", Source: SkillSourceCommon},
+	}
+
+	resolved, err := New(root).ResolveRecordedSources("project", refs)
+	if err != nil {
+		t.Fatalf("ResolveRecordedSources() error = %v", err)
+	}
+	if len(resolved) != len(refs) {
+		t.Fatalf("resolved length = %d, want %d", len(resolved), len(refs))
+	}
+	// 供給元種別→名前順で正規化されていることを検証（common系: common, vanish / project系: alpha, beta, gamma）
+	wantOrder := []string{"common", "vanish", "alpha", "beta", "gamma"}
+	for index, want := range wantOrder {
+		if resolved[index].Name != want {
+			t.Fatalf("resolved[%d].Name = %q, want %q", index, resolved[index].Name, want)
+		}
+	}
+	assertResolvedState(t, resolved, "common", SourceStateActive)
+	assertResolvedState(t, resolved, "alpha", SourceStateActive)
+	assertResolvedState(t, resolved, "beta", SourceStateDisabled)
+	assertResolvedState(t, resolved, "gamma", SourceStateMissing)
+	assertResolvedState(t, resolved, "vanish", SourceStateMissing)
+}
+
+func TestCatalogResolveRecordedSourcesRejectsProjectBaseMissing(t *testing.T) {
+	root := realCatalogTempDir(t)
+	// projects/project/skills を作らない（基底ディレクトリ欠落）
+	mustMkdirAll(t, filepath.Join(root, "projects"))
+
+	_, err := New(root).ResolveRecordedSources("project", []RecordedSkillRef{
+		{Name: "alpha", Source: SkillSourceProject},
+	})
+	if !errors.Is(err, ErrInvalidStructure) {
+		t.Fatalf("error = %v, want ErrInvalidStructure", err)
+	}
+}
+
+func TestCatalogResolveRecordedSourcesRejectsProjectBaseSymlink(t *testing.T) {
+	root := realCatalogTempDir(t)
+	mustMkdirAll(t, filepath.Join(root, "projects", "project"))
+	target := filepath.Join(root, "skills-target")
+	mustMkdirAll(t, target)
+	mustSymlink(t, target, filepath.Join(root, "projects", "project", "skills"))
+
+	_, err := New(root).ResolveRecordedSources("project", []RecordedSkillRef{
+		{Name: "alpha", Source: SkillSourceProject},
+	})
+	if !errors.Is(err, ErrSymlink) {
+		t.Fatalf("error = %v, want ErrSymlink", err)
+	}
+}
+
+func TestCatalogResolveRecordedSourcesRejectsProjectBaseNonDirectory(t *testing.T) {
+	root := realCatalogTempDir(t)
+	mustMkdirAll(t, filepath.Join(root, "projects", "project"))
+	mustWriteFile(t, filepath.Join(root, "projects", "project", "skills"))
+
+	_, err := New(root).ResolveRecordedSources("project", []RecordedSkillRef{
+		{Name: "alpha", Source: SkillSourceProject},
+	})
+	if !errors.Is(err, ErrInvalidStructure) {
+		t.Fatalf("error = %v, want ErrInvalidStructure", err)
+	}
+}
+
+func TestCatalogResolveRecordedSourcesRejectsCommonBaseMissingWhenCommonRecorded(t *testing.T) {
+	root := realCatalogTempDir(t)
+	// 共通Skillが記録されているのに utils/skills が欠落
+	mustMkdirAll(t, filepath.Join(root, "projects", "project", "skills"))
+
+	_, err := New(root).ResolveRecordedSources("project", []RecordedSkillRef{
+		{Name: "common", Source: SkillSourceCommon},
+	})
+	if !errors.Is(err, ErrInvalidStructure) {
+		t.Fatalf("error = %v, want ErrInvalidStructure", err)
+	}
+}
+
+func TestCatalogResolveRecordedSourcesSkipsCommonBaseWhenNotRecorded(t *testing.T) {
+	root := realCatalogTempDir(t)
+	// 共通Skillが未記録なら utils/skills が欠落していてもプロジェクト固有Skillは解決可能
+	mustMkdirAll(t, filepath.Join(root, "projects", "project", "skills", "alpha"))
+	mustWriteFile(t, filepath.Join(root, "projects", "project", "skills", "alpha", "SKILL.md"))
+
+	resolved, err := New(root).ResolveRecordedSources("project", []RecordedSkillRef{
+		{Name: "alpha", Source: SkillSourceProject},
+	})
+	if err != nil {
+		t.Fatalf("ResolveRecordedSources() error = %v", err)
+	}
+	if len(resolved) != 1 || resolved[0].State != SourceStateActive {
+		t.Fatalf("resolved = %#v", resolved)
+	}
+}
+
+func TestCatalogResolveRecordedSourcesRejectsSkillSymlink(t *testing.T) {
+	root := realCatalogTempDir(t)
+	mustMkdirAll(t, filepath.Join(root, "projects", "project", "skills"))
+	target := filepath.Join(root, "skill-target")
+	mustMkdirAll(t, target)
+	mustWriteFile(t, filepath.Join(target, "SKILL.md"))
+	mustSymlink(t, target, filepath.Join(root, "projects", "project", "skills", "linked"))
+
+	_, err := New(root).ResolveRecordedSources("project", []RecordedSkillRef{
+		{Name: "linked", Source: SkillSourceProject},
+	})
+	if !errors.Is(err, ErrSymlink) {
+		t.Fatalf("error = %v, want ErrSymlink", err)
+	}
+}
+
+func TestCatalogResolveRecordedSourcesRejectsSkillNonDirectory(t *testing.T) {
+	root := realCatalogTempDir(t)
+	mustMkdirAll(t, filepath.Join(root, "projects", "project", "skills"))
+	mustWriteFile(t, filepath.Join(root, "projects", "project", "skills", "file"))
+
+	_, err := New(root).ResolveRecordedSources("project", []RecordedSkillRef{
+		{Name: "file", Source: SkillSourceProject},
+	})
+	if !errors.Is(err, ErrInvalidStructure) {
+		t.Fatalf("error = %v, want ErrInvalidStructure", err)
+	}
+}
+
+func TestCatalogResolveRecordedSourcesRejectsManifestSymlink(t *testing.T) {
+	root := realCatalogTempDir(t)
+	skill := filepath.Join(root, "projects", "project", "skills", "alpha")
+	mustMkdirAll(t, skill)
+	target := filepath.Join(root, "manifest")
+	mustWriteFile(t, target)
+	mustSymlink(t, target, filepath.Join(skill, "SKILL.md"))
+
+	_, err := New(root).ResolveRecordedSources("project", []RecordedSkillRef{
+		{Name: "alpha", Source: SkillSourceProject},
+	})
+	if !errors.Is(err, ErrSymlink) {
+		t.Fatalf("error = %v, want ErrSymlink", err)
+	}
+}
+
+func TestCatalogResolveRecordedSourcesRejectsManifestNonRegular(t *testing.T) {
+	root := realCatalogTempDir(t)
+	skill := filepath.Join(root, "projects", "project", "skills", "alpha")
+	mustMkdirAll(t, filepath.Join(skill, "SKILL.md"))
+
+	_, err := New(root).ResolveRecordedSources("project", []RecordedSkillRef{
+		{Name: "alpha", Source: SkillSourceProject},
+	})
+	// SKILL.mdがディレクトリの場合は無効化（Disabled）ではなく構造エラー
+	if !errors.Is(err, ErrInvalidStructure) {
+		t.Fatalf("error = %v, want ErrInvalidStructure", err)
+	}
+}
+
+func TestCatalogResolveRecordedSourcesRejectsUnsupportedChildType(t *testing.T) {
+	root := realCatalogTempDir(t)
+	skill := filepath.Join(root, "projects", "project", "skills", "alpha")
+	mustMkdirAll(t, skill)
+	mustWriteFile(t, filepath.Join(skill, "SKILL.md"))
+	// FIFOは配下の未対応種別
+	if err := unixMkfifo(filepath.Join(skill, "pipe"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := New(root).ResolveRecordedSources("project", []RecordedSkillRef{
+		{Name: "alpha", Source: SkillSourceProject},
+	})
+	if !errors.Is(err, ErrInvalidStructure) {
+		t.Fatalf("error = %v, want ErrInvalidStructure", err)
+	}
+}
+
+func TestCatalogResolveRecordedSourcesRejectsInvalidProjectName(t *testing.T) {
+	root := realCatalogTempDir(t)
+	_, err := New(root).ResolveRecordedSources("../escape", []RecordedSkillRef{
+		{Name: "alpha", Source: SkillSourceProject},
+	})
+	if !errors.Is(err, ErrInvalidName) {
+		t.Fatalf("error = %v, want ErrInvalidName", err)
+	}
+}
+
+func TestCatalogResolveRecordedSourcesRejectsInvalidSourceKind(t *testing.T) {
+	root := realCatalogTempDir(t)
+	_, err := New(root).ResolveRecordedSources("project", []RecordedSkillRef{
+		{Name: "alpha", Source: SkillSource("unknown")},
+	})
+	if !errors.Is(err, ErrInvalidStructure) {
+		t.Fatalf("error = %v, want ErrInvalidStructure", err)
+	}
+}
+
+func assertResolvedState(t *testing.T, resolved []ResolvedSkillSource, name string, want SourceState) {
+	t.Helper()
+	for _, entry := range resolved {
+		if entry.Name != name {
+			continue
+		}
+		if entry.State != want {
+			t.Fatalf("resolved %q state = %v, want %v", name, entry.State, want)
+		}
+		if want == SourceStateActive && entry.Path == "" {
+			t.Fatalf("resolved %q active source must carry path", name)
+		}
+		if want != SourceStateActive && entry.Path != "" {
+			t.Fatalf("resolved %q non-active source must not carry path: %q", name, entry.Path)
+		}
+		return
+	}
+	t.Fatalf("resolved entry %q not found", name)
+}

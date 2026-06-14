@@ -23,6 +23,12 @@ var (
 	ErrRollback = errors.New("distribution rollback failed")
 	// ErrCommitted は管理情報コミット後の失敗を表します。
 	ErrCommitted = errors.New("distribution committed with an error")
+	// ErrPrecondition は同期の事前条件（未設定やWorkspace未検証など）を表します。
+	ErrPrecondition = errors.New("distribution precondition failed")
+	// ErrUnmanagedWorkspace はカレントディレクトリがmap.yaml未管理であることを表します。
+	ErrUnmanagedWorkspace = errors.New("workspace is not managed")
+	// ErrLocalChange は承認必須のローカル変更が検出されたことを表します。
+	ErrLocalChange = errors.New("distribution local change requires approval")
 )
 
 // Error は配布処理の分類、原因、後処理失敗を保持します。

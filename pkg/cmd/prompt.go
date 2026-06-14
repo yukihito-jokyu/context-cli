@@ -23,12 +23,15 @@ const (
 )
 
 // Prompt はAddコマンドの対話操作を表します。
+//
+//nolint:interfacebloat // 対話コマンドで必要なすべての選択ダイアログを1つのインターフェースにまとめます。
 type Prompt interface {
 	SelectProject(candidates []skillcatalog.Candidate, defaultName string) (skillcatalog.Candidate, error)
 	SelectSkills(kind SkillKind, candidates []skillcatalog.Candidate, defaultNames []string) ([]skillcatalog.Candidate, error)
 	ConfirmCommonSkills(defaultConfirmed bool) (bool, error)
 	SelectDestinations(defaultDestinations []distribution.Destination) ([]distribution.Destination, error)
 	ConfirmOverwrite(conflicts []string, localEdits []string) (bool, error)
+	ConfirmSync(updates []string, deletes []string) (bool, error)
 }
 
 type huhPrompt struct {
@@ -147,6 +150,32 @@ func (p *huhPrompt) ConfirmOverwrite(conflicts []string, localEdits []string) (b
 		}
 	}
 	sb.WriteString("\nこれらの変更を承認し、処理を続行しますか？")
+
+	selected := false
+	field := huh.NewConfirm().
+		Title(sb.String()).
+		Affirmative("はい").
+		Negative("いいえ").
+		Value(&selected)
+	err := p.runField(field)
+	return selected, err
+}
+
+func (p *huhPrompt) ConfirmSync(updates []string, deletes []string) (bool, error) {
+	var sb strings.Builder
+	if len(updates) > 0 {
+		sb.WriteString("以下のファイルを更新します:\n")
+		for _, path := range updates {
+			fmt.Fprintf(&sb, "  - %s\n", path)
+		}
+	}
+	if len(deletes) > 0 {
+		sb.WriteString("以下のファイルを削除します:\n")
+		for _, path := range deletes {
+			fmt.Fprintf(&sb, "  - %s\n", path)
+		}
+	}
+	sb.WriteString("\nこれらの変更を承認し、同期を実行しますか？")
 
 	selected := false
 	field := huh.NewConfirm().

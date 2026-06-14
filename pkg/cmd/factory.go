@@ -35,6 +35,12 @@ type SkillCatalog interface {
 	Project(string) (skillcatalog.Candidate, error)
 	ProjectSkills(skillcatalog.Candidate) ([]skillcatalog.Candidate, error)
 	CommonSkills([]skillcatalog.Candidate) ([]skillcatalog.Candidate, error)
+	ResolveRecordedSources(project string, skills []skillcatalog.RecordedSkillRef) ([]skillcatalog.ResolvedSkillSource, error)
+}
+
+// SyncPlanner は同期計画の構築境界を表します。
+type SyncPlanner interface {
+	Plan(distribution.MapSnapshot, distribution.SyncInput, []distribution.ResolvedSource) (distribution.SyncPlan, error)
 }
 
 // DistributionPlanner は初回配布計画の構築境界を表します。
@@ -60,6 +66,7 @@ type Factory struct {
 	Prompt               func(io.Reader, io.Writer) Prompt
 	MapStore             func() (distribution.MapStore, error)
 	DistributionPlanner  DistributionPlanner
+	SyncPlanner          SyncPlanner
 	DistributionExecutor func(distribution.MapStore) DistributionExecutor
 
 	// Config は Config インスタンスを返す関数です（遅延ロードされます）。
@@ -92,6 +99,7 @@ func NewFactory() *Factory {
 			return distributionmap.New(environment)
 		},
 		DistributionPlanner: distribution.NewPlanner(distributionFileSystem),
+		SyncPlanner:         distribution.NewSyncPlanner(distributionFileSystem),
 		DistributionExecutor: func(store distribution.MapStore) DistributionExecutor {
 			return distribution.NewExecutor(distributionFileSystem, store)
 		},

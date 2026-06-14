@@ -17,6 +17,7 @@ func NewCmdRoot(f *Factory) *cobra.Command {
 	// サブコマンドの登録
 	cmd.AddCommand(NewCmdInit(f))
 	cmd.AddCommand(NewCmdAdd(f))
+	cmd.AddCommand(NewCmdSync(f))
 	cmd.AddCommand(NewCmdPromptDemo(f))
 
 	return cmd

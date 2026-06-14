@@ -231,3 +231,79 @@ func TestStoreRemovesWorkspaceWhenSkillsAreEmpty(t *testing.T) {
 		t.Fatalf("expected 0 workspaces, got %d", len(finalSnapshot.Workspaces))
 	}
 }
+
+//nolint:gocognit,cyclop // 段階的なコミットと検証からなる回帰シナリオを一関数で完結させます。
+func TestStoreRemovesOnlyTargetWorkspaceAndPreservesOthersWhenSkillsEmpty(t *testing.T) {
+	// 同期で全Skillが消失して空Workspace記録をCommitした場合、
+	// 対象Workspaceだけを削除し他Workspaceとスキーマを保持する回帰検証です。
+	configHome, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	store, err := New(&stubEnvironment{xdg: configHome})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// workspace-a と workspace-b をそれぞれ1件ずつコミットして保持する。
+	tx, _, err := store.Begin(distribution.EmptyRevision)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Commit(validRecord("/workspace-a")); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Close(); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := store.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, _, err = store.Begin(snapshot.Revision)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Commit(validRecord("/workspace-b")); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// workspace-a を空記録でCommitし、同期で全Skill消失した状態を再現する。
+	snapshot, err = store.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, _, err = store.Begin(snapshot.Revision)
+	if err != nil {
+		t.Fatal(err)
+	}
+	emptyRecord := distribution.WorkspaceRecord{
+		WorkspaceRoot: "/workspace-a",
+		Project:       "project",
+		Destinations:  []distribution.Destination{distribution.DestinationCodex},
+		Skills:        []distribution.SkillRecord{},
+	}
+	if _, err := tx.Commit(emptyRecord); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	finalSnapshot, err := store.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, exists := finalSnapshot.Workspaces["/workspace-a"]; exists {
+		t.Fatal("expected workspace-a to be deleted, but it still exists")
+	}
+	if _, exists := finalSnapshot.Workspaces["/workspace-b"]; !exists {
+		t.Fatal("expected workspace-b to be preserved, but it was removed")
+	}
+	if len(finalSnapshot.Workspaces) != 1 {
+		t.Fatalf("expected 1 workspace, got %d", len(finalSnapshot.Workspaces))
+	}
+}

@@ -56,6 +56,240 @@ func NewWithFileSystem(root string, fileSystem FileSystem) *Catalog {
 	return &Catalog{root: root, fs: fileSystem}
 }
 
+// RecordedSkillRef は記録済みSkillの参照を表します。
+type RecordedSkillRef struct {
+	Name   string
+	Source SkillSource
+}
+
+// SkillSource はSkillの供給元種別を表します。
+type SkillSource string
+
+const (
+	// SkillSourceProject はプロジェクト固有Skillを表します。
+	SkillSourceProject SkillSource = "project"
+	// SkillSourceCommon は共通Skillを表します。
+	SkillSourceCommon SkillSource = "common"
+)
+
+// SourceState は解決済み供給元の状態分類を表します。
+type SourceState uint8
+
+const (
+	// SourceStateActive は供給元が実ディレクトリでSKILL.mdを持つ有効状態を表します。
+	SourceStateActive SourceState = iota + 1
+	// SourceStateMissing は個別Skillパスが欠落したことを表します。
+	SourceStateMissing
+	// SourceStateDisabled はSKILL.mdが欠落して無効化されたことを表します。
+	SourceStateDisabled
+)
+
+// ResolvedSkillSource は記録済みSkillの解決結果を表します。
+//
+// State がActive以外の場合は Path を空にします。
+// 基底ディレクトリやプロジェクトの構造破損、シンボリックリンク、未対応種別は
+// エラーとして返し、個別Skillの消失・無効化とは区別します。
+type ResolvedSkillSource struct {
+	Name   string
+	Source SkillSource
+	State  SourceState
+	Path   string
+}
+
+// ResolveRecordedSources は記録済みプロジェクトと必要な基底Skillディレクトリを検証し、
+// 各記録済みSkillの供給元を状態分類付きで返します。
+//
+// 候補列挙は行わず、記録済みSkillだけを対象とします。
+// 共通Skillが記録されていない場合は utils/skills の検証を省略します。
+// 同一Skill名・供給元の重複は名前順で1件に正規化します。
+func (c *Catalog) ResolveRecordedSources(project string, skills []RecordedSkillRef) ([]ResolvedSkillSource, error) {
+	if !validName(project) {
+		return nil, catalogError(ErrInvalidName, "project", nil)
+	}
+	refs, err := normalizeRecordedRefs(skills)
+	if err != nil {
+		return nil, err
+	}
+
+	projectBase := filepath.Join(c.root, "projects", project)
+	projectSkillsBase := filepath.Join(projectBase, "skills")
+	commonBase := filepath.Join(c.root, "utils", "skills")
+
+	needsCommon := false
+	for _, ref := range refs {
+		if ref.Source == SkillSourceCommon {
+			needsCommon = true
+			break
+		}
+	}
+
+	if err := c.validateRecordedProject(projectBase, projectSkillsBase); err != nil {
+		return nil, err
+	}
+	if needsCommon {
+		if err := c.validateRecordedCommonBase(commonBase); err != nil {
+			return nil, err
+		}
+	}
+
+	resolved := make([]ResolvedSkillSource, 0, len(refs))
+	for _, ref := range refs {
+		entry, resolveErr := c.resolveRecordedSkill(ref, projectSkillsBase, commonBase)
+		if resolveErr != nil {
+			return nil, resolveErr
+		}
+		resolved = append(resolved, entry)
+	}
+	return resolved, nil
+}
+
+func (c *Catalog) validateRecordedProject(projectPath, projectSkillsPath string) error {
+	if err := c.validateRequiredRealDirectory(filepath.Join(c.root, "projects")); err != nil {
+		return err
+	}
+	if err := c.validateRequiredRealDirectory(projectPath); err != nil {
+		return err
+	}
+	if err := c.validateRequiredRealDirectory(projectSkillsPath); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Catalog) validateRecordedCommonBase(commonPath string) error {
+	if err := c.validateRequiredRealDirectory(filepath.Join(c.root, "utils")); err != nil {
+		return err
+	}
+	if err := c.validateRequiredRealDirectory(commonPath); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Catalog) resolveRecordedSkill(ref RecordedSkillRef, projectBase, commonBase string) (ResolvedSkillSource, error) {
+	if !validName(ref.Name) {
+		return ResolvedSkillSource{}, catalogError(ErrInvalidName, ref.Name, nil)
+	}
+	var base string
+	switch ref.Source {
+	case SkillSourceProject:
+		base = projectBase
+	case SkillSourceCommon:
+		base = commonBase
+	default:
+		return ResolvedSkillSource{}, catalogError(ErrInvalidStructure, ref.Name, nil)
+	}
+	skillPath := filepath.Join(base, ref.Name)
+	info, err := c.fs.Lstat(skillPath)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return ResolvedSkillSource{Name: ref.Name, Source: ref.Source, State: SourceStateMissing}, nil
+		}
+		return ResolvedSkillSource{}, catalogError(ErrIO, ref.Name, err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		return ResolvedSkillSource{}, catalogError(ErrSymlink, ref.Name, nil)
+	}
+	if !info.IsDir() {
+		return ResolvedSkillSource{}, catalogError(ErrInvalidStructure, ref.Name, nil)
+	}
+	manifestValid, err := c.inspectRecordedManifest(skillPath, ref.Name)
+	if err != nil {
+		return ResolvedSkillSource{}, err
+	}
+	if !manifestValid {
+		return ResolvedSkillSource{Name: ref.Name, Source: ref.Source, State: SourceStateDisabled}, nil
+	}
+	if err := c.validateSkillContents(skillPath, ref.Name); err != nil {
+		return ResolvedSkillSource{}, err
+	}
+	return ResolvedSkillSource{Name: ref.Name, Source: ref.Source, State: SourceStateActive, Path: skillPath}, nil
+}
+
+func (c *Catalog) inspectRecordedManifest(skillPath, name string) (bool, error) {
+	info, err := c.fs.Lstat(filepath.Join(skillPath, "SKILL.md"))
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return false, nil
+		}
+		return false, catalogError(ErrIO, name, err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		return false, catalogError(ErrSymlink, name, nil)
+	}
+	if !info.Mode().IsRegular() {
+		return false, catalogError(ErrInvalidStructure, name, nil)
+	}
+	return true, nil
+}
+
+func (c *Catalog) validateSkillContents(skillPath, name string) error {
+	entries, err := c.fs.ReadDir(skillPath)
+	if err != nil {
+		return catalogError(ErrIO, name, err)
+	}
+	for _, entry := range entries {
+		entryInfo, err := entry.Info()
+		if err != nil {
+			return catalogError(ErrIO, name, err)
+		}
+		mode := entryInfo.Mode()
+		if mode&os.ModeSymlink != 0 {
+			return catalogError(ErrSymlink, name, nil)
+		}
+		if !mode.IsDir() && !mode.IsRegular() {
+			return catalogError(ErrInvalidStructure, name, nil)
+		}
+		if mode.IsDir() {
+			if err := c.validateSkillContents(filepath.Join(skillPath, entry.Name()), name); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (c *Catalog) validateRequiredRealDirectory(path string) error {
+	info, err := c.fs.Lstat(path)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return catalogError(ErrInvalidStructure, filepath.Base(path), err)
+		}
+		return catalogError(ErrIO, filepath.Base(path), err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		return catalogError(ErrSymlink, filepath.Base(path), nil)
+	}
+	if !info.IsDir() {
+		return catalogError(ErrInvalidStructure, filepath.Base(path), nil)
+	}
+	return nil
+}
+
+func normalizeRecordedRefs(skills []RecordedSkillRef) ([]RecordedSkillRef, error) {
+	deduped := make(map[string]RecordedSkillRef, len(skills))
+	for _, skill := range skills {
+		if skill.Source != SkillSourceProject && skill.Source != SkillSourceCommon {
+			return nil, catalogError(ErrInvalidStructure, skill.Name, nil)
+		}
+		if !validName(skill.Name) {
+			return nil, catalogError(ErrInvalidName, skill.Name, nil)
+		}
+		key := string(skill.Source) + "\x00" + skill.Name
+		deduped[key] = skill
+	}
+	keys := make([]string, 0, len(deduped))
+	for key := range deduped {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	refs := make([]RecordedSkillRef, 0, len(keys))
+	for _, key := range keys {
+		refs = append(refs, deduped[key])
+	}
+	return refs, nil
+}
+
 // Projects は有効なプロジェクトを名前順で返します。
 func (c *Catalog) Projects() ([]Candidate, error) {
 	projectsPath := filepath.Join(c.root, "projects")
