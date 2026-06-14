@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -49,9 +50,6 @@ func (o *InitOptions) Complete(_ *cobra.Command, _ []string) error {
 
 var errRepoRequired = errors.New("--repo flag is required")
 
-// ErrRepositoryChangeCanceled はContext Repositoryの設定変更が承認されなかったことを表します。
-var ErrRepositoryChangeCanceled = errors.New("context repository change canceled")
-
 type initOutputError struct {
 	message string
 	err     error
@@ -87,13 +85,17 @@ func (o *InitOptions) Run() error {
 
 	currentPath := cfg.GetContextRepository()
 	if currentPath != "" && currentPath != validatedPath {
-		if err := o.confirmRepositoryChange(currentPath, validatedPath); err != nil {
+		confirmed, err := o.confirmRepositoryChange(currentPath, validatedPath)
+		if err != nil {
 			return err
+		}
+		if !confirmed {
+			return nil
 		}
 	}
 
 	if currentPath != validatedPath {
-		if err := cfg.SetContextRepository(validatedPath); err != nil {
+		if err := cfg.SetContextRepository(currentPath, validatedPath); err != nil {
 			return fmt.Errorf("failed to set context repository: %w", err)
 		}
 	}
@@ -111,22 +113,28 @@ func (o *InitOptions) Run() error {
 	return nil
 }
 
-func (o *InitOptions) confirmRepositoryChange(currentPath, validatedPath string) error {
+func (o *InitOptions) confirmRepositoryChange(currentPath, validatedPath string) (bool, error) {
 	if _, err := fmt.Fprintf(
 		o.Factory.IOOut,
 		"Current context repository: %s\nNew context repository: %s\n変更しますか? [y/N] ",
 		currentPath,
 		validatedPath,
 	); err != nil {
-		return &initOutputError{
+		return false, &initOutputError{
 			message: "failed to write repository change confirmation",
 			err:     err,
 		}
 	}
 
 	answer, err := bufio.NewReader(o.Factory.IOIn).ReadString('\n')
-	if err != nil || strings.TrimSpace(answer) != "y" {
-		return ErrRepositoryChangeCanceled
+	if errors.Is(err, io.EOF) {
+		return false, nil
 	}
-	return nil
+	if err != nil {
+		return false, &initOutputError{
+			message: "failed to read repository change confirmation",
+			err:     err,
+		}
+	}
+	return strings.TrimSpace(answer) == "y", nil
 }

@@ -1,14 +1,17 @@
 package e2e_test
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
-	"github.com/yukihito-jokyu/context-cli/pkg/cmd"
+	"go.yaml.in/yaml/v3"
 )
 
 type initTestCase struct {
@@ -125,8 +128,7 @@ func TestE2E_Init(t *testing.T) {
 				t.Helper()
 				return createRepositoryFixture(t)
 			},
-			input:   "n\n",
-			wantErr: cmd.ErrRepositoryChangeCanceled,
+			input: "n\n",
 			wantRepository: func(_, initialRepository string) string {
 				return initialRepository
 			},
@@ -245,5 +247,304 @@ func assertSensitivePathsHidden(t *testing.T, h *harness, err error, sensitivePa
 				t.Fatalf("%s leaks path %q: %q", outputName, path, output)
 			}
 		}
+	}
+}
+
+type persistedConfig struct {
+	SchemaVersion     int    `yaml:"schema_version"`
+	ContextRepository string `yaml:"context_repository"`
+}
+
+type persistenceScenario struct {
+	name       string
+	input      string
+	wantOutput func(currentRepository, newRepository string) string
+	wantPath   func(currentRepository, newRepository string) string
+}
+
+func TestE2E_InitPersistence(t *testing.T) {
+	scenarios := []persistenceScenario{
+		{
+			name:  "PERSIST-001-same-path",
+			input: "",
+			wantOutput: func(currentRepository, _ string) string {
+				return fmt.Sprintf(
+					"Successfully initialized context repository at: %s\n",
+					currentRepository,
+				)
+			},
+			wantPath: func(currentRepository, _ string) string {
+				return currentRepository
+			},
+		},
+		{
+			name:  "PERSIST-002-approve-change",
+			input: "y\n",
+			wantOutput: func(currentRepository, newRepository string) string {
+				return repositoryChangeOutput(currentRepository, newRepository) +
+					fmt.Sprintf(
+						"Successfully initialized context repository at: %s\n",
+						newRepository,
+					)
+			},
+			wantPath: func(_, newRepository string) string {
+				return newRepository
+			},
+		},
+		{
+			name:       "PERSIST-003-reject-change",
+			input:      "n\n",
+			wantOutput: repositoryChangeOutput,
+			wantPath: func(currentRepository, _ string) string {
+				return currentRepository
+			},
+		},
+		{
+			name:       "PERSIST-004-eof",
+			input:      "",
+			wantOutput: repositoryChangeOutput,
+			wantPath: func(currentRepository, _ string) string {
+				return currentRepository
+			},
+		},
+	}
+
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			runPersistenceScenario(t, scenario)
+		})
+	}
+}
+
+func runPersistenceScenario(t *testing.T, scenario persistenceScenario) {
+	t.Helper()
+	base := realTemporaryDirectory(t)
+	xdgConfigHome := filepath.Join(base, "xdg")
+	currentRepository := createRepositoryFixtureAt(t, base, "current")
+	newRepository := currentRepository
+	if scenario.name != "PERSIST-001-same-path" {
+		newRepository = createRepositoryFixtureAt(t, base, "new")
+	}
+
+	first := runContextProcess(t, processRequest{
+		xdgConfigHome:    xdgConfigHome,
+		workingDirectory: base,
+		args:             []string{"init", "--repo", currentRepository},
+	})
+	assertProcessResult(t, first, processResult{
+		exitCode: 0,
+		stdout: fmt.Sprintf(
+			"Successfully initialized context repository at: %s\n",
+			currentRepository,
+		),
+	})
+
+	configPath := filepath.Join(xdgConfigHome, "context", "config.yaml")
+	assertPersistedConfig(t, configPath, currentRepository)
+	beforeData, beforeInfo := readConfigSnapshot(t, configPath)
+	time.Sleep(10 * time.Millisecond)
+
+	second := runContextProcess(t, processRequest{
+		xdgConfigHome:    xdgConfigHome,
+		workingDirectory: base,
+		stdin:            scenario.input,
+		args:             []string{"init", "--repo", newRepository},
+	})
+	assertProcessResult(t, second, processResult{
+		exitCode: 0,
+		stdout:   scenario.wantOutput(currentRepository, newRepository),
+	})
+
+	wantPath := scenario.wantPath(currentRepository, newRepository)
+	assertPersistedConfig(t, configPath, wantPath)
+	if wantPath == currentRepository {
+		assertConfigUnchanged(t, configPath, beforeData, beforeInfo)
+	}
+}
+
+func TestE2E_InitPersistence_InvalidRepository(t *testing.T) {
+	base := realTemporaryDirectory(t)
+	xdgConfigHome := filepath.Join(base, "xdg")
+	invalidRepository := filepath.Join(base, "invalid")
+	if err := os.Mkdir(invalidRepository, 0o700); err != nil {
+		t.Fatalf("無効Repository fixtureを作成できません: %v", err)
+	}
+
+	result := runContextProcess(t, processRequest{
+		xdgConfigHome:    xdgConfigHome,
+		workingDirectory: base,
+		args:             []string{"init", "--repo", invalidRepository},
+	})
+	wantError := "Error: failed to validate context repository: " +
+		"context repository required structure is missing (projects)\n"
+	assertProcessResult(t, result, processResult{
+		exitCode: 1,
+		stderr:   wantError,
+	})
+	if strings.Count(result.stderr, "Error:") != 1 {
+		t.Fatalf("stderrのError出現回数 = %d, want 1: %q", strings.Count(result.stderr, "Error:"), result.stderr)
+	}
+	if strings.Contains(result.stderr, invalidRepository) {
+		t.Fatalf("stderrにRepositoryパスが含まれています: %q", result.stderr)
+	}
+	if _, err := os.Stat(filepath.Join(xdgConfigHome, "context")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("無効Repositoryで設定ディレクトリが作成されました: %v", err)
+	}
+}
+
+func TestE2E_CommandErrorBoundary(t *testing.T) {
+	tests := []struct {
+		name       string
+		args       []string
+		wantStderr string
+	}{
+		{
+			name:       "unknown-command",
+			args:       []string{"unknown-command"},
+			wantStderr: "Error: unknown command \"unknown-command\" for \"context\"\n",
+		},
+		{
+			name:       "unknown-flag",
+			args:       []string{"init", "--unknown"},
+			wantStderr: "Error: unknown flag: --unknown\n",
+		},
+		{
+			name:       "required-repository",
+			args:       []string{"init"},
+			wantStderr: "Error: --repo flag is required\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			base := realTemporaryDirectory(t)
+			xdgConfigHome := filepath.Join(base, "xdg")
+			result := runContextProcess(t, processRequest{
+				xdgConfigHome:    xdgConfigHome,
+				workingDirectory: base,
+				args:             tt.args,
+			})
+			assertProcessResult(t, result, processResult{
+				exitCode: 1,
+				stderr:   tt.wantStderr,
+			})
+			if strings.Count(result.stderr, "Error:") != 1 {
+				t.Fatalf(
+					"stderrのError出現回数 = %d, want 1: %q",
+					strings.Count(result.stderr, "Error:"),
+					result.stderr,
+				)
+			}
+			if _, err := os.Stat(filepath.Join(xdgConfigHome, "context")); !errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("CLI入力エラーで設定ディレクトリが作成されました: %v", err)
+			}
+		})
+	}
+}
+
+func repositoryChangeOutput(currentRepository, newRepository string) string {
+	return fmt.Sprintf(
+		"Current context repository: %s\nNew context repository: %s\n変更しますか? [y/N] ",
+		currentRepository,
+		newRepository,
+	)
+}
+
+func realTemporaryDirectory(t *testing.T) string {
+	t.Helper()
+	base, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatalf("一時ディレクトリの実体パスを取得できません: %v", err)
+	}
+	return base
+}
+
+func createRepositoryFixtureAt(t *testing.T, base, name string) string {
+	t.Helper()
+	repository := filepath.Join(base, name)
+	for _, path := range []string{
+		filepath.Join(repository, "projects"),
+		filepath.Join(repository, "utils", "skills"),
+	} {
+		if err := os.MkdirAll(path, 0o700); err != nil {
+			t.Fatalf("Repository fixtureを作成できません: %v", err)
+		}
+	}
+	return repository
+}
+
+func assertProcessResult(t *testing.T, got, want processResult) {
+	t.Helper()
+	if got.exitCode != want.exitCode {
+		t.Errorf("exit code = %d, want %d", got.exitCode, want.exitCode)
+	}
+	if got.stdout != want.stdout {
+		t.Errorf("stdout = %q, want %q", got.stdout, want.stdout)
+	}
+	if got.stderr != want.stderr {
+		t.Errorf("stderr = %q, want %q", got.stderr, want.stderr)
+	}
+}
+
+func assertPersistedConfig(t *testing.T, configPath, wantRepository string) {
+	t.Helper()
+	data, err := os.ReadFile(configPath) //nolint:gosec // テスト専用一時ディレクトリ配下の固定ファイルを読む。
+	if err != nil {
+		t.Fatalf("設定ファイルを読み込めません: %v", err)
+	}
+	decoder := yaml.NewDecoder(bytes.NewReader(data))
+	decoder.KnownFields(true)
+	var config persistedConfig
+	if err := decoder.Decode(&config); err != nil {
+		t.Fatalf("設定YAMLをデコードできません: %v", err)
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
+		t.Fatalf("設定YAMLに複数文書または末尾データがあります: %v", err)
+	}
+	if config.SchemaVersion != 1 {
+		t.Errorf("schema_version = %d, want 1", config.SchemaVersion)
+	}
+	if config.ContextRepository != wantRepository {
+		t.Errorf("context_repository = %q, want %q", config.ContextRepository, wantRepository)
+	}
+	if !filepath.IsAbs(config.ContextRepository) {
+		t.Errorf("context_repositoryが絶対パスではありません: %q", config.ContextRepository)
+	}
+}
+
+func readConfigSnapshot(t *testing.T, configPath string) ([]byte, os.FileInfo) {
+	t.Helper()
+	data, err := os.ReadFile(configPath) //nolint:gosec // テスト専用一時ディレクトリ配下の固定ファイルを読む。
+	if err != nil {
+		t.Fatalf("設定ファイルを読み込めません: %v", err)
+	}
+	info, err := os.Stat(configPath)
+	if err != nil {
+		t.Fatalf("設定ファイルの情報を取得できません: %v", err)
+	}
+	return data, info
+}
+
+func assertConfigUnchanged(
+	t *testing.T,
+	configPath string,
+	beforeData []byte,
+	beforeInfo os.FileInfo,
+) {
+	t.Helper()
+	afterData, afterInfo := readConfigSnapshot(t, configPath)
+	if !bytes.Equal(afterData, beforeData) {
+		t.Errorf("設定ファイルの内容が変更されました")
+	}
+	if !afterInfo.ModTime().Equal(beforeInfo.ModTime()) {
+		t.Errorf(
+			"設定ファイルの更新日時が変更されました: before=%s after=%s",
+			beforeInfo.ModTime(),
+			afterInfo.ModTime(),
+		)
+	}
+	if !os.SameFile(beforeInfo, afterInfo) {
+		t.Errorf("設定ファイルが置換されました")
 	}
 }
