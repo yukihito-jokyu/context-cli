@@ -99,14 +99,14 @@
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Pending : plan-tasksによる生成
-    Pending --> InProgress : design-task完了 ＆ ユーザーの設計承認後
+    [*] --> Pending : design-tasksによる生成
+    Pending --> InProgress : 実装開始時
     InProgress --> UnderReview : implement-taskによる実装・テスト通過後
     UnderReview --> Completed : review-implementation完了 ＆ ユーザーの実装承認後
     Completed --> [*]
 ```
 
-1.  **設計開始前**: ステータスは `未着手 (Pending)`。
-2.  **設計承認後**: 親エージェントがユーザーから設計承認（Accepted）を得た後、ステータスを `仕掛中 (In Progress)` に更新し、実装サブエージェント（`task_implementer`）を起動する。
+1.  **設計開始前**: ステータスは `未着手 (Pending)`（`design-tasks` によって具体設計が記述された状態で生成される）。
+2.  **実装開始時**: 対象タスクの実装を開始する際、親エージェントがステータスを `仕掛中 (In Progress)` に更新し、実装サブエージェント（`task_implementer`）を起動する。
 3.  **実装完了後**: サブエージェントによるテストおよび品質ゲート通過後、ステータスを `レビュー中 (Under Review)` に更新し、レビューサブエージェント（`code_reviewer`）を起動する。
 4.  **実装承認後**: コードレビューを通過し、親エージェントがユーザーから最終的な実装承認を得た後、親エージェントがステータスを `完了 (Completed)` に更新する。
