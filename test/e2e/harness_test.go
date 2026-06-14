@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/creack/pty"
 	"github.com/yukihito-jokyu/context-cli/pkg/cmd"
 )
 
@@ -129,6 +130,11 @@ type processRequest struct {
 	workingDirectory string
 	stdin            string
 	args             []string
+}
+
+type terminalStep struct {
+	waitFor string
+	input   string
 }
 
 func TestMain(m *testing.M) {
@@ -250,4 +256,106 @@ func runContextProcess(
 		result.stderr,
 	)
 	return processResult{}
+}
+
+func runContextTerminal(
+	t *testing.T,
+	request processRequest,
+	steps []terminalStep,
+) processResult {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	command := exec.CommandContext(ctx, contextBinary(t), request.args...) //nolint:gosec // テストが構築した実バイナリだけを起動する。
+	command.Dir = request.workingDirectory
+	command.Env = []string{
+		"XDG_CONFIG_HOME=" + request.xdgConfigHome,
+		"TERM=xterm-256color",
+		"LANG=C.UTF-8",
+	}
+	terminal, err := pty.StartWithSize(command, &pty.Winsize{Rows: 30, Cols: 120})
+	if err != nil {
+		t.Fatalf("PTY上でcontextプロセスを起動できません: %v", err)
+	}
+	defer func() { _ = terminal.Close() }()
+
+	var output bytes.Buffer
+	var outputMu sync.Mutex
+	readDone := make(chan struct{})
+	go func() {
+		defer close(readDone)
+		buffer := make([]byte, 4096)
+		for {
+			count, readErr := terminal.Read(buffer)
+			if count > 0 {
+				outputMu.Lock()
+				_, _ = output.Write(buffer[:count])
+				outputMu.Unlock()
+			}
+			if readErr != nil {
+				return
+			}
+		}
+	}()
+
+	for _, step := range steps {
+		waitForTerminalOutput(ctx, t, &terminalOutput{
+			buffer: &output,
+			mutex:  &outputMu,
+		}, step.waitFor)
+		if _, err := terminal.Write([]byte(step.input)); err != nil {
+			t.Fatalf("PTYへ入力できません: %v", err)
+		}
+	}
+
+	waitErr := command.Wait()
+	_ = terminal.Close()
+	<-readDone
+	outputMu.Lock()
+	combined := output.String()
+	outputMu.Unlock()
+	result := processResult{stdout: combined}
+	if ctx.Err() != nil {
+		t.Fatalf("contextプロセスがタイムアウトしました\noutput:\n%s", combined)
+	}
+	if waitErr == nil {
+		return result
+	}
+	var exitErr *exec.ExitError
+	if errors.As(waitErr, &exitErr) {
+		result.exitCode = exitErr.ExitCode()
+		return result
+	}
+	t.Fatalf("contextプロセスの待機に失敗しました: %v\noutput:\n%s", waitErr, combined)
+	return processResult{}
+}
+
+type terminalOutput struct {
+	buffer *bytes.Buffer
+	mutex  *sync.Mutex
+}
+
+func waitForTerminalOutput(
+	ctx context.Context,
+	t *testing.T,
+	output *terminalOutput,
+	expected string,
+) {
+	t.Helper()
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		output.mutex.Lock()
+		current := output.buffer.String()
+		output.mutex.Unlock()
+		if strings.Contains(current, expected) {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			t.Fatalf("プロンプト %q を待機中にタイムアウトしました\noutput:\n%s", expected, current)
+		case <-ticker.C:
+		}
+	}
 }
