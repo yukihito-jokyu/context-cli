@@ -18,6 +18,7 @@ func NewCmdRoot(f *Factory) *cobra.Command {
 	cmd.AddCommand(NewCmdInit(f))
 	cmd.AddCommand(NewCmdAdd(f))
 	cmd.AddCommand(NewCmdSync(f))
+	cmd.AddCommand(NewCmdDelete(f))
 	cmd.AddCommand(NewCmdPromptDemo(f))
 
 	return cmd
