@@ -64,7 +64,7 @@ func TestPlanDelete(t *testing.T) {
 
 				// "alpha"を削除し、"beta"を維持する計画
 				planner := NewPlanner(NewOSFileSystem())
-				
+
 				// この正常系のテストケースでローカル編集扱いになるのを防ぐため、ハッシュをディスク内容と一致させる
 				alphaHash, err := NewOSFileSystem().HashSkill(alphaDest)
 				if err != nil {
