@@ -760,6 +760,14 @@ func (p *stubDistributionPlanner) Plan(
 	return p.plan, p.err
 }
 
+func (p *stubDistributionPlanner) PlanDelete(
+	_ distribution.MapSnapshot,
+	_ string,
+	_ []string,
+) (distribution.Plan, error) {
+	return p.plan, p.err
+}
+
 type stubDistributionExecutor struct {
 	plan   distribution.Plan
 	result distribution.Result
@@ -833,26 +841,28 @@ func (c *stubSkillCatalog) record(call string) {
 }
 
 type stubPrompt struct {
-	project             skillcatalog.Candidate
-	selectedProject     []skillcatalog.Candidate
-	addCommon           bool
-	selectedCommon      []skillcatalog.Candidate
-	selectedDestination []distribution.Destination
-	errors              map[string]error
-	calls               []string
-	projectCandidates   []skillcatalog.Candidate
-	skillCandidates     map[SkillKind][]skillcatalog.Candidate
-	trace               *[]string
-	defaultProject      string
-	defaultSkills       map[SkillKind][]string
-	defaultConfirmed    bool
-	defaultDestinations []distribution.Destination
-	confirmOverwrite    bool
-	conflictsSeen       []string
-	localEditsSeen      []string
-	confirmSync         bool
-	updatesSeen         []string
-	deletesSeen         []string
+	project                  skillcatalog.Candidate
+	selectedProject          []skillcatalog.Candidate
+	addCommon                bool
+	selectedCommon           []skillcatalog.Candidate
+	selectedDestination      []distribution.Destination
+	errors                   map[string]error
+	calls                    []string
+	projectCandidates        []skillcatalog.Candidate
+	skillCandidates          map[SkillKind][]skillcatalog.Candidate
+	trace                    *[]string
+	defaultProject           string
+	defaultSkills            map[SkillKind][]string
+	defaultConfirmed         bool
+	defaultDestinations      []distribution.Destination
+	confirmOverwrite         bool
+	conflictsSeen            []string
+	localEditsSeen           []string
+	confirmSync              bool
+	updatesSeen              []string
+	deletesSeen              []string
+	selectedSkillsToDelete   []string
+	skillsToDeleteCandidates []string
 }
 
 func (p *stubPrompt) SelectProject(candidates []skillcatalog.Candidate, defaultProject string) (skillcatalog.Candidate, error) {
@@ -908,6 +918,13 @@ func (p *stubPrompt) ConfirmSync(updates []string, deletes []string) (bool, erro
 	p.updatesSeen = updates
 	p.deletesSeen = deletes
 	return p.confirmSync, p.errors["confirm-sync"]
+}
+
+func (p *stubPrompt) SelectSkillsToDelete(candidates []string) ([]string, error) {
+	p.calls = append(p.calls, "select-skills-to-delete")
+	p.record("prompt-select-skills-to-delete")
+	p.skillsToDeleteCandidates = candidates
+	return p.selectedSkillsToDelete, p.errors["select-skills-to-delete"]
 }
 
 func (p *stubPrompt) record(call string) {

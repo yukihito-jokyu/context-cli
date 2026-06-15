@@ -32,6 +32,7 @@ type Prompt interface {
 	SelectDestinations(defaultDestinations []distribution.Destination) ([]distribution.Destination, error)
 	ConfirmOverwrite(conflicts []string, localEdits []string) (bool, error)
 	ConfirmSync(updates []string, deletes []string) (bool, error)
+	SelectSkillsToDelete(candidates []string) ([]string, error)
 }
 
 type huhPrompt struct {
@@ -184,5 +185,18 @@ func (p *huhPrompt) ConfirmSync(updates []string, deletes []string) (bool, error
 		Negative("いいえ").
 		Value(&selected)
 	err := p.runField(field)
+	return selected, err
+}
+
+func (p *huhPrompt) SelectSkillsToDelete(candidates []string) ([]string, error) {
+	selected := []string{}
+	options := make([]huh.Option[string], len(candidates))
+	for i, name := range candidates {
+		options[i] = huh.NewOption(name, name)
+	}
+	err := p.runField(huh.NewMultiSelect[string]().
+		Title("削除するSkillを選択してください").
+		Options(options...).
+		Value(&selected))
 	return selected, err
 }

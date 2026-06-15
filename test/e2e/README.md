@@ -84,3 +84,25 @@ go test ./test/e2e -run TestAdd -v
 ```bash
 go test ./test/e2e -run TestSyncE2E -v
 ```
+
+## delete削除
+
+`TestDeleteE2E_*` テストは、実バイナリと一時ディレクトリを使用し、`context delete` コマンドによる削除プロセス全体を検証する。
+
+| ID         | 事前条件                                | 操作 / 入力                             | 期待結果                                                            | 対応テスト名                                       |
+| ---------- | --------------------------------------- | --------------------------------------- | ------------------------------------------------------------------- | -------------------------------------------------- |
+| DELETE-001 | 複数Skillが配布済みの環境               | `context delete skill-a`                | skill-a が配布先と map.yaml から削除され、他Skillは維持される       | `TestDeleteE2E_Success_Specific`                   |
+| DELETE-002 | 複数Skillが配布済みの環境               | `context delete --all`                  | 全Skillが削除され、map.yaml から Workspace 記録が完全に削除される   | `TestDeleteE2E_Success_All`                        |
+| DELETE-003 | 複数Skillが配布済みの環境               | `context delete` で対象を選択して Enter | 選択された Skill が配布先と map.yaml から削除される                 | `TestDeleteE2E_Interactive_Select`                 |
+| DELETE-004 | 複数Skillが配布済みの環境               | `context delete` で Ctrl-C (キャンセル) | 削除を中止し、ファイルと map.yaml は一切変更されない                | `TestDeleteE2E_Interactive_Cancel`                 |
+| DELETE-005 | 未管理ディレクトリ                      | `context delete`                        | 未管理エラーが表示され、終了コード1で終了する                       | `TestDeleteE2E_Unmanaged`                          |
+| DELETE-006 | 複数Skillが配布済みの環境               | `context delete nonexistent`            | 存在しないSkillエラーが表示され、一切変更されずに終了コード1となる  | `TestDeleteE2E_NonexistentSkill`                   |
+| DELETE-007 | 配布先にローカル変更があり、TTYで実行   | `context delete` で `n` (拒否) を選択   | 削除を中止し、ファイルと map.yaml は一切変更されない                | `TestDeleteE2E_Interactive_LocalEdit` の Reject部  |
+| DELETE-008 | 配布先にローカル変更があり、TTYで実行   | `context delete` で `y` (承認) を選択   | 削除を実行し、ファイルと map.yaml が更新される                      | `TestDeleteE2E_Interactive_LocalEdit` の Approve部 |
+| DELETE-009 | 配布先にローカル変更があり、非TTYで実行 | `context delete` (非TTY)                | ローカル変更エラーが表示され、一切変更されずに終了コード1で終了する | `TestDeleteE2E_LocalEdit_NoTTY`                    |
+
+### 実行方法
+
+```bash
+go test ./test/e2e -run TestDeleteE2E -v
+```

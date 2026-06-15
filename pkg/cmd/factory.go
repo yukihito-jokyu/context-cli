@@ -46,6 +46,7 @@ type SyncPlanner interface {
 // DistributionPlanner は初回配布計画の構築境界を表します。
 type DistributionPlanner interface {
 	Plan(distribution.MapSnapshot, distribution.Selection) (distribution.Plan, error)
+	PlanDelete(distribution.MapSnapshot, string, []string) (distribution.Plan, error)
 }
 
 // DistributionExecutor は初回配布計画の実行境界を表します。
