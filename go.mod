@@ -4,10 +4,11 @@ go 1.26.3
 
 require (
 	github.com/charmbracelet/huh v1.0.0
+	github.com/charmbracelet/x/term v0.2.1
 	github.com/creack/pty v1.1.24
 	github.com/spf13/cobra v1.10.2
-	go.yaml.in/yaml/v3 v3.0.4
-	golang.org/x/sys v0.36.0
+	go.yaml.in/yaml/v3 v3.0.5
+	golang.org/x/sys v0.48.0
 )
 
 require (
@@ -21,7 +22,6 @@ require (
 	github.com/charmbracelet/x/ansi v0.10.1 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.13 // indirect
 	github.com/charmbracelet/x/exp/strings v0.0.0-20240722160745-212f7b056ed0 // indirect
-	github.com/charmbracelet/x/term v0.2.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
